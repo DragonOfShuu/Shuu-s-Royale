@@ -9,13 +9,14 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 final class MatchLeaderboardPanelRenderer {
 
     private static final int PANEL_PADDING = 12;
     private static final int ROW_HEIGHT = 10;
+    private static final int MIN_COLUMN_CHAR_WIDTH = 3;
+    private static final int COLUMN_GAP = 12;
 
     private static final Comparator<PlayerMatchStats> PLAYER_SORTER = Comparator
             .comparingInt(PlayerMatchStats::kills).reversed()
@@ -41,6 +42,7 @@ final class MatchLeaderboardPanelRenderer {
             int screenWidth, int screenHeight,
             MatchStatsSnapshot snapshot, String title) {
         PanelBounds panel = centeredPanelBounds(screenWidth, screenHeight);
+        ColumnLayout columns = columnLayout(font, panel);
 
         guiGraphics.fill(panel.x(), panel.y(), panel.x() + panel.width(), panel.y() + panel.height(), 0xCC111111);
         guiGraphics.fill(panel.x(), panel.y(), panel.x() + panel.width(), panel.y() + 1, 0xFFFFFFFF);
@@ -53,16 +55,20 @@ final class MatchLeaderboardPanelRenderer {
         String titleText = Component.literal(title)
                 .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD)
                 .getString();
-        guiGraphics.drawString(font, titleText, panel.x() + PANEL_PADDING, panel.y() + PANEL_PADDING, 0xFFFFFF, false);
-        guiGraphics.drawString(font, "Name                        K   D   L",
-                panel.x() + PANEL_PADDING, panel.y() + PANEL_PADDING + 12, 0xAAAAAA, false);
+        guiGraphics.drawString(font, titleText, columns.nameX(), panel.y() + PANEL_PADDING, 0xFFFFFF, false);
+
+        int headerY = panel.y() + PANEL_PADDING + 12;
+        guiGraphics.drawString(font, "Name", columns.nameX(), headerY, 0xAAAAAA, false);
+        drawRightAligned(guiGraphics, font, "K", columns.killsRight(), headerY, 0xAAAAAA);
+        drawRightAligned(guiGraphics, font, "D", columns.deathsRight(), headerY, 0xAAAAAA);
+        drawRightAligned(guiGraphics, font, "L", columns.livesRight(), headerY, 0xAAAAAA);
 
         int y = panel.y() + PANEL_PADDING + 24;
         int maxY = panel.y() + panel.height() - PANEL_PADDING;
 
         for (RenderLine line : buildLines(snapshot)) {
             if (y + ROW_HEIGHT > maxY) {
-                guiGraphics.drawString(font, "...", panel.x() + PANEL_PADDING, y, 0xFFFFFF, false);
+                guiGraphics.drawString(font, "...", columns.nameX(), y, 0xFFFFFF, false);
                 break;
             }
 
@@ -72,8 +78,17 @@ final class MatchLeaderboardPanelRenderer {
                         line.backgroundColor());
             }
 
-            guiGraphics.drawString(font, line.text(), panel.x() + PANEL_PADDING + line.indent(), y, line.color(),
-                    false);
+            if (line.columns() == null) {
+                guiGraphics.drawString(font, line.text(), columns.nameX() + line.indent(), y, line.color(), false);
+            } else {
+                int availableNameWidth = columns.killsLeft() - COLUMN_GAP - (columns.nameX() + line.indent());
+                String name = trimToWidth(font, line.text(), availableNameWidth);
+                guiGraphics.drawString(font, name, columns.nameX() + line.indent(), y, line.color(), false);
+                drawRightAligned(guiGraphics, font, line.columns().kills(), columns.killsRight(), y, line.color());
+                drawRightAligned(guiGraphics, font, line.columns().deaths(), columns.deathsRight(), y, line.color());
+                drawRightAligned(guiGraphics, font, line.columns().lives(), columns.livesRight(), y, line.color());
+            }
+
             y += ROW_HEIGHT;
         }
     }
@@ -110,7 +125,7 @@ final class MatchLeaderboardPanelRenderer {
                 Integer rgb = TeamColors.getTeamColor(group.name());
                 int color = rgb == null ? 0xFFE0E0E0 : TeamColors.toArgb(rgb, 255);
                 Integer bg = rgb == null ? TeamColors.toArgb(0x3A3A3A, 120) : TeamColors.toArgb(rgb, 120);
-                lines.add(new RenderLine(group.name() + " (" + group.totalKills() + " K)", color, 0, bg));
+                lines.add(new RenderLine(group.name() + " (" + group.totalKills() + " K)", color, 0, bg, null));
                 for (PlayerMatchStats player : group.players()) {
                     lines.add(playerLine(player, 10));
                 }
@@ -123,27 +138,63 @@ final class MatchLeaderboardPanelRenderer {
     }
 
     private static RenderLine playerLine(PlayerMatchStats player, int indent) {
-        String trimmed = trim(player.playerName(), 20);
-        String text = String.format(Locale.ROOT, "%-20s %2d %3d %3s",
-                trimmed, player.kills(), player.deaths(), formatLives(player.livesLeft()));
-        return new RenderLine(text, 0xFFFFFFFF, indent, null);
-    }
-
-    private static String trim(String value, int maxLength) {
-        if (value.length() <= maxLength) {
-            return value;
-        }
-        return value.substring(0, Math.max(0, maxLength - 1)) + "~";
+        return new RenderLine(
+                player.playerName(),
+                0xFFFFFFFF,
+                indent,
+                null,
+                new RenderColumns(
+                        Integer.toString(player.kills()),
+                        Integer.toString(player.deaths()),
+                        formatLives(player.livesLeft())));
     }
 
     private static String formatLives(int lives) {
         return lives < 0 ? "INF" : Integer.toString(lives);
     }
 
+    private static ColumnLayout columnLayout(Font font, PanelBounds panel) {
+        int minColumnWidth = font.width("0".repeat(MIN_COLUMN_CHAR_WIDTH));
+        int livesRight = panel.x() + panel.width() - PANEL_PADDING;
+        int deathsRight = livesRight - minColumnWidth - COLUMN_GAP;
+        int killsRight = deathsRight - minColumnWidth - COLUMN_GAP;
+        int killsLeft = killsRight - minColumnWidth;
+        int nameX = panel.x() + PANEL_PADDING;
+        return new ColumnLayout(nameX, killsLeft, killsRight, deathsRight, livesRight);
+    }
+
+    private static void drawRightAligned(GuiGraphics guiGraphics, Font font, String value, int rightX, int y, int color) {
+        guiGraphics.drawString(font, value, rightX - font.width(value), y, color, false);
+    }
+
+    private static String trimToWidth(Font font, String value, int maxWidth) {
+        if (maxWidth <= 0 || font.width(value) <= maxWidth) {
+            return value;
+        }
+
+        String ellipsis = "~";
+        int ellipsisWidth = font.width(ellipsis);
+        if (ellipsisWidth > maxWidth) {
+            return "";
+        }
+
+        int cut = value.length();
+        while (cut > 0 && font.width(value.substring(0, cut)) + ellipsisWidth > maxWidth) {
+            cut--;
+        }
+        return value.substring(0, cut) + ellipsis;
+    }
+
     record PanelBounds(int x, int y, int width, int height) {
     }
 
-    private record RenderLine(String text, int color, int indent, Integer backgroundColor) {
+    private record ColumnLayout(int nameX, int killsLeft, int killsRight, int deathsRight, int livesRight) {
+    }
+
+    private record RenderColumns(String kills, String deaths, String lives) {
+    }
+
+    private record RenderLine(String text, int color, int indent, Integer backgroundColor, RenderColumns columns) {
     }
 
     private record GroupEntry(String name, List<PlayerMatchStats> players, int totalKills, boolean isTeam) {
