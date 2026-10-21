@@ -13,7 +13,6 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -43,6 +42,7 @@ final class ArenaSnapshotPersistence {
                 .runAsync(() -> writeToDisk(dir, backup), Util.ioPool())
                 .whenComplete((ignored, error) -> server.execute(() -> {
                     ArenaSnapshot.state = ArenaSnapshot.State.READY;
+                    ArenaSnapshot.DIRTY_CHUNKS.clear();
                     if (error != null) {
                         ArenaSnapshot.LOGGER.error("Failed to save arena backup", error);
                         BattleRoyaleGame.broadcast(server,
@@ -97,6 +97,7 @@ final class ArenaSnapshotPersistence {
                     ArenaSnapshot.centerZ = backup.centerZ();
                     ArenaSnapshot.size = backup.size();
                     ArenaSnapshot.arenaConfigured = true;
+                        ArenaSnapshot.DIRTY_CHUNKS.clear();
                     ArenaSnapshot.state = ArenaSnapshot.State.READY;
                     ArenaSnapshot.LOGGER.info("Loaded arena backup: {} chunks, size {}",
                             backup.chunks().size(), backup.size());

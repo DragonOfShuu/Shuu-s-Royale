@@ -5,7 +5,6 @@ import net.minecraft.core.SectionPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.entity.item.FallingBlockEntity;
@@ -54,14 +53,28 @@ final class ArenaSnapshotJobs {
         BattleRoyaleGame.broadcast(server, "Backing up arena (" + ArenaSnapshot.totalChunks + " chunks)...");
     }
 
-    static void beginRestore(MinecraftServer server) {
+    static boolean beginRestore(MinecraftServer server, boolean restoreAll) {
         ArenaSnapshot.QUEUE.clear();
-        for (long key : ArenaSnapshot.SAVED.keySet()) {
-            ArenaSnapshot.QUEUE.add(new ChunkPos(key));
+
+        if (restoreAll) {
+            for (long key : ArenaSnapshot.SAVED.keySet()) {
+                ArenaSnapshot.QUEUE.add(new ChunkPos(key));
+            }
+        } else {
+            for (long key : ArenaSnapshot.DIRTY_CHUNKS) {
+                if (ArenaSnapshot.SAVED.containsKey(key)) {
+                    ArenaSnapshot.QUEUE.add(new ChunkPos(key));
+                }
+            }
+        }
+
+        if (ArenaSnapshot.QUEUE.isEmpty()) {
+            return false;
         }
 
         ArenaSnapshot.startJob(ArenaSnapshot.State.RESTORING);
         BattleRoyaleGame.broadcast(server, "Restoring arena (" + ArenaSnapshot.totalChunks + " chunks)...");
+        return true;
     }
 
     static void tick(MinecraftServer server) {
@@ -164,6 +177,7 @@ final class ArenaSnapshotJobs {
 
         clearLeftoverEntities(level);
 
+        ArenaSnapshot.DIRTY_CHUNKS.clear();
         ArenaSnapshot.state = ArenaSnapshot.State.READY;
         BattleRoyaleGame.broadcast(server, "Arena restored.");
     }

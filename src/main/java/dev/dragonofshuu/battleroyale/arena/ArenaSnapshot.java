@@ -16,7 +16,9 @@ import org.slf4j.Logger;
 
 import java.util.ArrayDeque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -57,6 +59,7 @@ public final class ArenaSnapshot {
     }
 
     static final Map<Long, ChunkData> SAVED = new HashMap<>();
+    static final Set<Long> DIRTY_CHUNKS = new HashSet<>();
     static final ArrayDeque<ChunkPos> QUEUE = new ArrayDeque<>();
 
     static State state = State.EMPTY;
@@ -83,6 +86,10 @@ public final class ArenaSnapshot {
 
     public static boolean hasBackup() {
         return state == State.READY;
+    }
+
+    public static int getDirtyChunkCount() {
+        return DIRTY_CHUNKS.size();
     }
 
     public static boolean hasArenaConfig() {
@@ -171,6 +178,7 @@ public final class ArenaSnapshot {
 
     static void clearBackupState() {
         SAVED.clear();
+        DIRTY_CHUNKS.clear();
         QUEUE.clear();
         state = State.EMPTY;
     }
@@ -179,8 +187,19 @@ public final class ArenaSnapshot {
         ArenaSnapshotJobs.beginCapture(server, cx, cz, arenaSize);
     }
 
-    public static void beginRestore(MinecraftServer server) {
-        ArenaSnapshotJobs.beginRestore(server);
+    public static boolean beginRestore(MinecraftServer server, boolean restoreAll) {
+        return ArenaSnapshotJobs.beginRestore(server, restoreAll);
+    }
+
+    public static void markChunkDirty(long chunkKey) {
+        // Only track changes when a stable backup is ready.
+        if (state != State.READY) {
+            return;
+        }
+        if (!SAVED.containsKey(chunkKey)) {
+            return;
+        }
+        DIRTY_CHUNKS.add(chunkKey);
     }
 
     static void startJob(State newState) {

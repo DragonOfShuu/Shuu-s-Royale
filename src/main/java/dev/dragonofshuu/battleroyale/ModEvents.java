@@ -8,15 +8,21 @@ import dev.dragonofshuu.battleroyale.modes.battleRoyale.BattleRoyaleGame;
 import dev.dragonofshuu.battleroyale.shared.PlayerDrop;
 import dev.dragonofshuu.battleroyale.shared.SharedMatchStats;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.damagesource.DamageTypes;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingFallEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.level.BlockEvent;
+import net.minecraftforge.event.level.ExplosionEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
@@ -93,6 +99,47 @@ public final class ModEvents {
             ArenaTimedGame.onPlayerRespawn(player);
             PlayerDrop.onRespawn(player);
         }
+    }
+
+    @SubscribeEvent
+    public static void onBlockBreak(BlockEvent.BreakEvent event) {
+        markDirtyIfOverworldServer(event.getLevel(), event.getPos());
+    }
+
+    @SubscribeEvent
+    public static void onBlockPlace(BlockEvent.EntityPlaceEvent event) {
+        markDirtyIfOverworldServer(event.getLevel(), event.getPos());
+    }
+
+    @SubscribeEvent
+    public static void onBlockMultiPlace(BlockEvent.EntityMultiPlaceEvent event) {
+        for (var snapshot : event.getReplacedBlockSnapshots()) {
+            markDirtyIfOverworldServer(event.getLevel(), snapshot.getPos());
+        }
+    }
+
+    @SubscribeEvent
+    public static void onExplosionDetonate(ExplosionEvent.Detonate event) {
+        Level level = event.getLevel();
+        if (!(level instanceof ServerLevel serverLevel) || serverLevel != serverLevel.getServer().overworld()) {
+            return;
+        }
+
+        for (BlockPos pos : event.getExplosion().getToBlow()) {
+            ArenaSnapshot.markChunkDirty(net.minecraft.world.level.ChunkPos.asLong(
+                    net.minecraft.core.SectionPos.blockToSectionCoord(pos.getX()),
+                    net.minecraft.core.SectionPos.blockToSectionCoord(pos.getZ())));
+        }
+    }
+
+    private static void markDirtyIfOverworldServer(LevelAccessor level, BlockPos pos) {
+        if (!(level instanceof ServerLevel serverLevel) || serverLevel != serverLevel.getServer().overworld()) {
+            return;
+        }
+
+        ArenaSnapshot.markChunkDirty(net.minecraft.world.level.ChunkPos.asLong(
+                net.minecraft.core.SectionPos.blockToSectionCoord(pos.getX()),
+                net.minecraft.core.SectionPos.blockToSectionCoord(pos.getZ())));
     }
 
     @SubscribeEvent

@@ -59,7 +59,9 @@ public final class BrCommands {
                                                                         .executes(
                                                                                 BrCommands::initArenaWithSettings)))))))
                         .then(Commands.literal("reset")
-                                .executes(BrCommands::resetArena)));
+                            .executes(BrCommands::resetArena)
+                            .then(Commands.literal("all")
+                                .executes(BrCommands::resetArenaAll))));
     }
 
     private static boolean requireOverworld(CommandSourceStack source) {
@@ -251,8 +253,14 @@ public final class BrCommands {
     }
 
     private static int resetArena(CommandContext<CommandSourceStack> ctx) {
-        CommandSourceStack source = ctx.getSource();
+        return runReset(ctx.getSource(), false);
+    }
 
+    private static int resetArenaAll(CommandContext<CommandSourceStack> ctx) {
+        return runReset(ctx.getSource(), true);
+    }
+
+    private static int runReset(CommandSourceStack source, boolean restoreAll) {
         if (ArenaSnapshot.isBusy()) {
             source.sendFailure(Component.literal("A backup or restore is already in progress."));
             return 0;
@@ -265,7 +273,20 @@ public final class BrCommands {
         if (BattleRoyaleGame.isActive()) {
             BattleRoyaleGame.stop(source.getServer());
         }
-        ArenaSnapshot.beginRestore(source.getServer());
+
+        if (!restoreAll && ArenaSnapshot.getDirtyChunkCount() == 0) {
+            source.sendFailure(Component.literal("No dirty chunks to restore. Use /br reset all to force a full restore."));
+            return 0;
+        }
+
+        if (!ArenaSnapshot.beginRestore(source.getServer(), restoreAll)) {
+            source.sendFailure(Component.literal("No chunks were queued for restore."));
+            return 0;
+        }
+
+        source.sendSuccess(() -> Component.literal(restoreAll
+                ? "Started full arena restore."
+                : "Started dirty-chunk arena restore."), true);
         return 1;
     }
 }

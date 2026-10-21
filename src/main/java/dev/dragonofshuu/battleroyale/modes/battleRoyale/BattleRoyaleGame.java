@@ -284,7 +284,7 @@ public final class BattleRoyaleGame {
             return;
         }
 
-        ArenaSnapshot.beginRestore(server);
+        ArenaSnapshot.beginRestore(server, false);
     }
 
     private static void updateBar() {

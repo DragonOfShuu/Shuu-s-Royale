@@ -211,6 +211,6 @@ public final class ArenaTimedGame {
             return;
         }
 
-        ArenaSnapshot.beginRestore(server);
+        ArenaSnapshot.beginRestore(server, false);
     }
 }
