@@ -250,9 +250,9 @@ public final class ArenaSnapshot {
 
         clearLeftoverEntities(level);
 
-        WorldBorder border = level.getWorldBorder();
-        border.setCenter(centerX, centerZ);
-        border.setSize(size);
+        // WorldBorder border = level.getWorldBorder();
+        // border.setCenter(centerX, centerZ);
+        // border.setSize(size);
 
         state = State.READY;
         BattleRoyaleGame.broadcast(server, "Arena restored.");

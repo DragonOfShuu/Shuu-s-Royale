@@ -69,7 +69,9 @@ public final class BattleRoyaleGame {
             if (player.isSpectator() || player.isCreative())
                 continue;
             PlayerDrop.drop(level, player, centerX, centerZ, borderSize);
-            Loadout.giveLoadout(player);
+            Loadout.LoadoutClass loadoutClass = Loadout.LoadoutClass
+                    .values()[(int) (Math.random() * Loadout.LoadoutClass.values().length)];
+            Loadout.giveLoadout(player, loadoutClass);
         }
 
         updateBar();
