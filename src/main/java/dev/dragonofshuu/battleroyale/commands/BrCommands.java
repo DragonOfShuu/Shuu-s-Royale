@@ -59,9 +59,9 @@ public final class BrCommands {
                                                                         .executes(
                                                                                 BrCommands::initArenaWithSettings)))))))
                         .then(Commands.literal("reset")
-                            .executes(BrCommands::resetArena)
-                            .then(Commands.literal("all")
-                                .executes(BrCommands::resetArenaAll))));
+                                .executes(BrCommands::resetArena)
+                                .then(Commands.literal("all")
+                                        .executes(BrCommands::resetArenaAll))));
     }
 
     private static boolean requireOverworld(CommandSourceStack source) {
@@ -275,7 +275,8 @@ public final class BrCommands {
         }
 
         if (!restoreAll && ArenaSnapshot.getDirtyChunkCount() == 0) {
-            source.sendFailure(Component.literal("No dirty chunks to restore. Use /br reset all to force a full restore."));
+            source.sendFailure(
+                    Component.literal("No dirty chunks to restore. Use /br reset all to force a full restore."));
             return 0;
         }
 

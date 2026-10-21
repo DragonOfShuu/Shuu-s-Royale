@@ -97,7 +97,7 @@ final class ArenaSnapshotPersistence {
                     ArenaSnapshot.centerZ = backup.centerZ();
                     ArenaSnapshot.size = backup.size();
                     ArenaSnapshot.arenaConfigured = true;
-                        ArenaSnapshot.DIRTY_CHUNKS.clear();
+                    ArenaSnapshot.DIRTY_CHUNKS.clear();
                     ArenaSnapshot.state = ArenaSnapshot.State.READY;
                     ArenaSnapshot.LOGGER.info("Loaded arena backup: {} chunks, size {}",
                             backup.chunks().size(), backup.size());

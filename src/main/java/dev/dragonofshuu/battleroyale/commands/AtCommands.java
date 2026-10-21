@@ -36,9 +36,9 @@ public final class AtCommands {
                                 .then(Commands.argument("size", IntegerArgumentType.integer(11, MAX_BACKUP_SIZE))
                                         .executes(AtCommands::initArena)))
                         .then(Commands.literal("reset")
-                            .executes(AtCommands::resetArena)
-                            .then(Commands.literal("all")
-                                .executes(AtCommands::resetArenaAll))));
+                                .executes(AtCommands::resetArena)
+                                .then(Commands.literal("all")
+                                        .executes(AtCommands::resetArenaAll))));
     }
 
     private static boolean requireOverworld(CommandSourceStack source) {
@@ -185,7 +185,8 @@ public final class AtCommands {
         }
 
         if (!restoreAll && ArenaSnapshot.getDirtyChunkCount() == 0) {
-            source.sendFailure(Component.literal("No dirty chunks to restore. Use /at reset all to force a full restore."));
+            source.sendFailure(
+                    Component.literal("No dirty chunks to restore. Use /at reset all to force a full restore."));
             return 0;
         }
 
