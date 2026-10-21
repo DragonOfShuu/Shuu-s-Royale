@@ -180,7 +180,8 @@ public final class ArenaSnapshot {
         saveConfigAsync(server);
     }
 
-    public static void setGameSettings(MinecraftServer server, int warTime, int shrinkAmount, int shrinkTime, int lives) {
+    public static void setGameSettings(MinecraftServer server, int warTime, int shrinkAmount, int shrinkTime,
+            int lives) {
         ArenaSnapshot.warTime = warTime;
         ArenaSnapshot.shrinkAmount = shrinkAmount;
         ArenaSnapshot.shrinkTime = shrinkTime;

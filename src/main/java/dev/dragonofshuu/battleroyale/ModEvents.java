@@ -34,37 +34,42 @@ public final class ModEvents {
                 Commands.literal("br")
                         .requires(source -> source.hasPermission(2))
                         .then(Commands.literal("start")
-                    .executes(ModEvents::startGame))
+                                .executes(ModEvents::startGame))
                         .then(Commands.literal("stop")
                                 .executes(ModEvents::stopGame))
                         .then(Commands.literal("backup")
-                    .executes(ModEvents::backupArena))
-                .then(Commands.literal("settings")
-                    .then(Commands.literal("warTime")
-                        .then(Commands.argument("value", IntegerArgumentType.integer(1))
-                            .executes(ModEvents::setWarTime)))
-                    .then(Commands.literal("shrinkAmount")
-                        .then(Commands.argument("value", IntegerArgumentType.integer(1))
-                            .executes(ModEvents::setShrinkAmount)))
-                    .then(Commands.literal("shrinkTime")
-                        .then(Commands.argument("value", IntegerArgumentType.integer(1))
-                            .executes(ModEvents::setShrinkTime)))
-                    .then(Commands.literal("lives")
-                        .then(Commands.argument("value", IntegerArgumentType.integer(0))
-                            .executes(ModEvents::setLives))))
-                .then(Commands.literal("set")
-                    .then(Commands.literal("center")
-                        .then(Commands.argument("size", IntegerArgumentType.integer(11, MAX_BACKUP_SIZE))
-                            .executes(ModEvents::setCenter))))
-                .then(Commands.literal("init")
-                    .then(Commands.argument("size", IntegerArgumentType.integer(11, MAX_BACKUP_SIZE))
-                        .executes(ModEvents::initArena)
-                        .then(Commands.argument("warTime", IntegerArgumentType.integer(1))
-                            .then(Commands.argument("shrinkAmount", IntegerArgumentType.integer(1))
-                                .then(Commands.argument("shrinkTime", IntegerArgumentType.integer(1))
-                                    .executes(ModEvents::initArenaWithSettings)
-                                    .then(Commands.argument("lives", IntegerArgumentType.integer(0))
-                                        .executes(ModEvents::initArenaWithSettings)))))))
+                                .executes(ModEvents::backupArena))
+                        .then(Commands.literal("settings")
+                                .then(Commands.literal("warTime")
+                                        .then(Commands.argument("value", IntegerArgumentType.integer(1))
+                                                .executes(ModEvents::setWarTime)))
+                                .then(Commands.literal("shrinkAmount")
+                                        .then(Commands.argument("value", IntegerArgumentType.integer(1))
+                                                .executes(ModEvents::setShrinkAmount)))
+                                .then(Commands.literal("shrinkTime")
+                                        .then(Commands.argument("value", IntegerArgumentType.integer(1))
+                                                .executes(ModEvents::setShrinkTime)))
+                                .then(Commands.literal("lives")
+                                        .then(Commands.argument("value", IntegerArgumentType.integer(0))
+                                                .executes(ModEvents::setLives))))
+                        .then(Commands.literal("set")
+                                .then(Commands.literal("center")
+                                        .then(Commands
+                                                .argument("size", IntegerArgumentType.integer(11, MAX_BACKUP_SIZE))
+                                                .executes(ModEvents::setCenter))))
+                        .then(Commands.literal("init")
+                                .then(Commands.argument("size", IntegerArgumentType.integer(11, MAX_BACKUP_SIZE))
+                                        .executes(ModEvents::initArena)
+                                        .then(Commands.argument("warTime", IntegerArgumentType.integer(1))
+                                                .then(Commands.argument("shrinkAmount", IntegerArgumentType.integer(1))
+                                                        .then(Commands
+                                                                .argument("shrinkTime", IntegerArgumentType.integer(1))
+                                                                .executes(ModEvents::initArenaWithSettings)
+                                                                .then(Commands
+                                                                        .argument("lives",
+                                                                                IntegerArgumentType.integer(0))
+                                                                        .executes(
+                                                                                ModEvents::initArenaWithSettings)))))))
                         .then(Commands.literal("reset")
                                 .executes(ModEvents::resetArena)));
     }
@@ -83,7 +88,8 @@ public final class ModEvents {
             return 0;
 
         if (!ArenaSnapshot.hasArenaConfig()) {
-            source.sendFailure(Component.literal("Arena center/size not set. Use /br set center <size> or /br init <size>."));
+            source.sendFailure(
+                    Component.literal("Arena center/size not set. Use /br set center <size> or /br init <size>."));
             return 0;
         }
         if (!ArenaSnapshot.hasGameSettings()) {
@@ -105,10 +111,10 @@ public final class ModEvents {
                 source.getServer(),
                 ArenaSnapshot.getCenterX(), ArenaSnapshot.getCenterZ(),
                 ArenaSnapshot.getSize(),
-            ArenaSnapshot.getWarTime(),
-            ArenaSnapshot.getShrinkAmount(),
-            ArenaSnapshot.getShrinkTime(),
-            ArenaSnapshot.getLives());
+                ArenaSnapshot.getWarTime(),
+                ArenaSnapshot.getShrinkAmount(),
+                ArenaSnapshot.getShrinkTime(),
+                ArenaSnapshot.getLives());
         return 1;
     }
 
@@ -163,7 +169,8 @@ public final class ModEvents {
             return 0;
 
         if (!ArenaSnapshot.hasArenaConfig()) {
-            source.sendFailure(Component.literal("Arena center/size not set. Use /br set center <size> or /br init <size>."));
+            source.sendFailure(
+                    Component.literal("Arena center/size not set. Use /br set center <size> or /br init <size>."));
             return 0;
         }
 
