@@ -8,10 +8,13 @@ import java.util.UUID;
  */
 public record MatchStatsSnapshot(
         MatchPhase phase,
+        String modeId,
+        int timerSeconds,
+        boolean showFinalResults,
         UUID localPlayerId,
         List<PlayerMatchStats> players) {
 
     public static MatchStatsSnapshot empty() {
-        return new MatchStatsSnapshot(MatchPhase.IDLE, null, List.of());
+        return new MatchStatsSnapshot(MatchPhase.IDLE, "", -1, false, null, List.of());
     }
 }

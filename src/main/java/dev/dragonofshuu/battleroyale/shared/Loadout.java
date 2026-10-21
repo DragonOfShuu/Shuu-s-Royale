@@ -1,9 +1,13 @@
 package dev.dragonofshuu.battleroyale.shared;
 
+import java.util.HashMap;
+import java.util.Optional;
+
 import org.slf4j.Logger;
 
 import com.mojang.logging.LogUtils;
 
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -11,13 +15,10 @@ import net.minecraft.world.item.DyeableLeatherItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.scores.Team;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.wrapper.PlayerMainInvWrapper;
 import net.minecraftforge.items.wrapper.RangedWrapper;
 import net.minecraftforge.registries.ForgeRegistries;
-
-import java.util.Locale;
 
 /**
  * Starting gear handed to every participant when the game begins.
@@ -51,7 +52,7 @@ public final class Loadout {
     }
 
     private static void giveTeamArmor(ServerPlayer player) {
-        Integer armorColor = getTeamLeatherColor(player.getTeam());
+        Integer armorColor = TeamColors.getTeamColor(player.getTeam());
 
         player.setItemSlot(EquipmentSlot.HEAD, createLeatherArmor(Items.LEATHER_HELMET, armorColor));
         player.setItemSlot(EquipmentSlot.LEGS, createLeatherArmor(Items.LEATHER_LEGGINGS, armorColor));
@@ -74,58 +75,15 @@ public final class Loadout {
         return stack;
     }
 
-    private static Integer getTeamLeatherColor(Team team) {
-        if (team == null) {
-            return null;
-        }
-
-        String teamName = team.getName().toLowerCase(Locale.ROOT)
-                .replace('-', '_')
-                .replace(' ', '_');
-
-        if (teamName.contains("white"))
-            return 0xF9FFFE;
-        if (teamName.contains("orange"))
-            return 0xF9801D;
-        if (teamName.contains("magenta"))
-            return 0xC74EBD;
-        if (teamName.contains("light_blue"))
-            return 0x3AB3DA;
-        if (teamName.contains("yellow"))
-            return 0xFED83D;
-        if (teamName.contains("lime"))
-            return 0x80C71F;
-        if (teamName.contains("pink"))
-            return 0xF38BAA;
-        if (teamName.contains("gray"))
-            return 0x474F52;
-        if (teamName.contains("light_gray") || teamName.contains("silver"))
-            return 0x9D9D97;
-        if (teamName.contains("cyan"))
-            return 0x169C9C;
-        if (teamName.contains("purple"))
-            return 0x8932B8;
-        if (teamName.contains("blue"))
-            return 0x3C44AA;
-        if (teamName.contains("brown"))
-            return 0x835432;
-        if (teamName.contains("green"))
-            return 0x5E7C16;
-        if (teamName.contains("red"))
-            return 0xB02E26;
-        if (teamName.contains("black"))
-            return 0x1D1D21;
-
-        return null;
-    }
-
     private static void giveBaseLoadout(ServerPlayer player) {
-        String[] baseItems = {
-                "cgm:assault_rifle",
-                "cgm:pistol"
+        HashMap<String, CompoundTag> baseItems = new HashMap<>() {
+            {
+                put("cgm:assault_rifle", LoadoutNBT.addMediumScope(LoadoutNBT.loadedAssaultRifle(Optional.empty())));
+                put("cgm:pistol", LoadoutNBT.loadedPistol(Optional.empty()));
+            }
         };
-        for (String itemId : baseItems) {
-            give(player, itemId, 1, false);
+        for (String itemId : baseItems.keySet()) {
+            give(player, itemId, 1, false, baseItems.get(itemId));
         }
 
         String[] baseOutsideHotbar = {
@@ -133,7 +91,7 @@ public final class Loadout {
                 "cgm:advanced_bullet",
         };
         for (String itemId : baseOutsideHotbar) {
-            giveOutsideHotbar(player, itemId, 128, false);
+            giveOutsideHotbar(player, itemId, 256, false);
         }
         String[] baseAttachments = {
                 "cgm:short_scope",
@@ -151,7 +109,7 @@ public final class Loadout {
         var inventory = player.getInventory();
 
         inventory.add(6, new ItemStack(Items.DIAMOND_PICKAXE));
-        inventory.add(7, new ItemStack(Items.TNT, 32));
+        inventory.add(7, new ItemStack(Items.TNT, 128));
         inventory.add(8, new ItemStack(Items.FLINT_AND_STEEL));
     }
 
@@ -161,11 +119,13 @@ public final class Loadout {
      * combat.
      */
     public static void giveMachineClassLoadout(ServerPlayer player) {
-        String[] machineClassItems = {
-                "cgm:mini_gun",
+        HashMap<String, CompoundTag> machineClassItems = new HashMap<>() {
+            {
+                put("cgm:mini_gun", LoadoutNBT.loadedMiniGun(Optional.empty()));
+            }
         };
-        for (String itemId : machineClassItems) {
-            give(player, itemId, 1, false);
+        for (String itemId : machineClassItems.keySet()) {
+            give(player, itemId, 1, false, machineClassItems.get(itemId));
         }
 
         String[] machineClassOutsideHotbar = {
@@ -177,11 +137,13 @@ public final class Loadout {
     }
 
     public static void giveSniperClassLoadout(ServerPlayer player) {
-        String[] sniperClassItems = {
-                "cgm:heavy_rifle"
+        HashMap<String, CompoundTag> sniperClassItems = new HashMap<>() {
+            {
+                put("cgm:heavy_rifle", LoadoutNBT.loadedHeavyRifle(Optional.empty()));
+            }
         };
-        for (String itemId : sniperClassItems) {
-            give(player, itemId, 1, false);
+        for (String itemId : sniperClassItems.keySet()) {
+            give(player, itemId, 1, false, sniperClassItems.get(itemId));
         }
 
         String[] sniperClassOutsideHotbar = {
@@ -193,12 +155,14 @@ public final class Loadout {
     }
 
     public static void giveCloseCombatClassLoadout(ServerPlayer player) {
-        String[] closeCombatClassItems = {
-                "cgm:shotgun",
-                "minecraft:diamond_sword"
+        HashMap<String, CompoundTag> closeCombatClassItems = new HashMap<>() {
+            {
+                put("cgm:shotgun", LoadoutNBT.loadedShotgun(Optional.empty()));
+                put("minecraft:diamond_sword", new CompoundTag());
+            }
         };
-        for (String itemId : closeCombatClassItems) {
-            give(player, itemId, 1, false);
+        for (String itemId : closeCombatClassItems.keySet()) {
+            give(player, itemId, 1, false, closeCombatClassItems.get(itemId));
         }
 
         String[] closeCombatClassOutsideHotbar = {
@@ -210,11 +174,13 @@ public final class Loadout {
     }
 
     public static void giveBomberClassLoadout(ServerPlayer player) {
-        String[] bomberClassItems = {
-                "cgm:bazooka"
+        HashMap<String, CompoundTag> bomberClassItems = new HashMap<>() {
+            {
+                put("cgm:bazooka", LoadoutNBT.loadedBazooka(Optional.empty()));
+            }
         };
-        for (String itemId : bomberClassItems) {
-            give(player, itemId, 1, false);
+        for (String itemId : bomberClassItems.keySet()) {
+            give(player, itemId, 1, false, bomberClassItems.get(itemId));
         }
 
         String[] bomberClassOutsideHotbar = {
@@ -231,6 +197,15 @@ public final class Loadout {
      * dependency.
      */
     private static void give(ServerPlayer player, String itemId, int count, boolean canDrop) {
+        give(player, itemId, count, canDrop, Optional.empty());
+    }
+
+    private static void give(ServerPlayer player, String itemId, int count, boolean canDrop, CompoundTag tag) {
+        give(player, itemId, count, canDrop, Optional.of(tag));
+    }
+
+    private static void give(ServerPlayer player, String itemId, int count, boolean canDrop,
+            Optional<CompoundTag> tag) {
         ResourceLocation id = ResourceLocation.tryParse(itemId);
         Item item = id == null ? null : ForgeRegistries.ITEMS.getValue(id);
 
@@ -242,6 +217,9 @@ public final class Loadout {
         var inventory = player.getInventory();
 
         ItemStack stack = new ItemStack(item, count);
+        if (tag.isPresent()) {
+            stack.setTag(tag.get());
+        }
         if (!inventory.add(stack) && canDrop && !player.level().isClientSide()) {
             player.drop(stack, false); // Inventory full; drop what's left at their feet
         }

@@ -1,6 +1,7 @@
-package dev.dragonofshuu.battleroyale;
+package dev.dragonofshuu.battleroyale.commands;
 
 import dev.dragonofshuu.battleroyale.arena.ArenaSnapshot;
+import dev.dragonofshuu.battleroyale.modes.arenaTimed.ArenaTimedGame;
 import dev.dragonofshuu.battleroyale.modes.battleRoyale.BattleRoyaleGame;
 
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -9,56 +10,56 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 
-final class ModCommands {
+public final class BrCommands {
 
     private static final int MAX_BACKUP_SIZE = 4096;
 
-    private ModCommands() {
+    private BrCommands() {
     }
 
-    static void register(net.minecraftforge.event.RegisterCommandsEvent event) {
+    public static void register(net.minecraftforge.event.RegisterCommandsEvent event) {
         event.getDispatcher().register(
                 Commands.literal("br")
                         .requires(source -> source.hasPermission(2))
                         .then(Commands.literal("start")
-                                .executes(ModCommands::startGame))
+                                .executes(BrCommands::startGame))
                         .then(Commands.literal("stop")
-                                .executes(ModCommands::stopGame))
+                                .executes(BrCommands::stopGame))
                         .then(Commands.literal("backup")
-                                .executes(ModCommands::backupArena))
+                                .executes(BrCommands::backupArena))
                         .then(Commands.literal("settings")
                                 .then(Commands.literal("warTime")
                                         .then(Commands.argument("value", IntegerArgumentType.integer(1))
-                                                .executes(ModCommands::setWarTime)))
+                                                .executes(BrCommands::setWarTime)))
                                 .then(Commands.literal("shrinkAmount")
                                         .then(Commands.argument("value", IntegerArgumentType.integer(1))
-                                                .executes(ModCommands::setShrinkAmount)))
+                                                .executes(BrCommands::setShrinkAmount)))
                                 .then(Commands.literal("shrinkTime")
                                         .then(Commands.argument("value", IntegerArgumentType.integer(1))
-                                                .executes(ModCommands::setShrinkTime)))
+                                                .executes(BrCommands::setShrinkTime)))
                                 .then(Commands.literal("lives")
                                         .then(Commands.argument("value", IntegerArgumentType.integer(0))
-                                                .executes(ModCommands::setLives))))
+                                                .executes(BrCommands::setLives))))
                         .then(Commands.literal("set")
                                 .then(Commands.literal("center")
                                         .then(Commands
                                                 .argument("size", IntegerArgumentType.integer(11, MAX_BACKUP_SIZE))
-                                                .executes(ModCommands::setCenter))))
+                                                .executes(BrCommands::setCenter))))
                         .then(Commands.literal("init")
                                 .then(Commands.argument("size", IntegerArgumentType.integer(11, MAX_BACKUP_SIZE))
-                                        .executes(ModCommands::initArena)
+                                        .executes(BrCommands::initArena)
                                         .then(Commands.argument("warTime", IntegerArgumentType.integer(1))
                                                 .then(Commands.argument("shrinkAmount", IntegerArgumentType.integer(1))
                                                         .then(Commands
                                                                 .argument("shrinkTime", IntegerArgumentType.integer(1))
-                                                                .executes(ModCommands::initArenaWithSettings)
+                                                                .executes(BrCommands::initArenaWithSettings)
                                                                 .then(Commands
                                                                         .argument("lives",
                                                                                 IntegerArgumentType.integer(0))
                                                                         .executes(
-                                                                                ModCommands::initArenaWithSettings)))))))
+                                                                                BrCommands::initArenaWithSettings)))))))
                         .then(Commands.literal("reset")
-                                .executes(ModCommands::resetArena)));
+                                .executes(BrCommands::resetArena)));
     }
 
     private static boolean requireOverworld(CommandSourceStack source) {
@@ -87,6 +88,11 @@ final class ModCommands {
 
         if (BattleRoyaleGame.isRunning()) {
             source.sendFailure(Component.literal("A game is already running."));
+            return 0;
+        }
+        if (ArenaTimedGame.isActive()) {
+            source.sendFailure(
+                    Component.literal("Arena Timed is currently active. Stop it before starting Battle Royale."));
             return 0;
         }
         if (ArenaSnapshot.isBusy()) {

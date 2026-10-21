@@ -1,6 +1,9 @@
 package dev.dragonofshuu.battleroyale;
 
 import dev.dragonofshuu.battleroyale.arena.ArenaSnapshot;
+import dev.dragonofshuu.battleroyale.commands.AtCommands;
+import dev.dragonofshuu.battleroyale.commands.BrCommands;
+import dev.dragonofshuu.battleroyale.modes.arenaTimed.ArenaTimedGame;
 import dev.dragonofshuu.battleroyale.modes.battleRoyale.BattleRoyaleGame;
 import dev.dragonofshuu.battleroyale.shared.PlayerDrop;
 import dev.dragonofshuu.battleroyale.shared.SharedMatchStats;
@@ -28,7 +31,8 @@ public final class ModEvents {
 
     @SubscribeEvent
     public static void onRegisterCommands(RegisterCommandsEvent event) {
-        ModCommands.register(event);
+        BrCommands.register(event);
+        AtCommands.register(event);
     }
 
     @SubscribeEvent
@@ -37,6 +41,7 @@ public final class ModEvents {
             MinecraftServer server = event.getServer();
             ArenaSnapshot.tick(server);
             BattleRoyaleGame.tick(server);
+            ArenaTimedGame.tick(server);
             PlayerDrop.tick(server);
         }
     }
@@ -58,6 +63,7 @@ public final class ModEvents {
         // clear it.
         SharedMatchStats.clear(event.getServer());
         BattleRoyaleGame.reset();
+        ArenaTimedGame.reset();
         ArenaSnapshot.clear();
         PlayerDrop.clear();
         SharedMatchStats.clearClientSnapshot();
@@ -75,6 +81,7 @@ public final class ModEvents {
     public static void onPlayerLogout(PlayerEvent.PlayerLoggedOutEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             BattleRoyaleGame.onPlayerLeave(player);
+            // Arena Timed has no mode-specific leave cleanup currently.
             PlayerDrop.onLogout(player);
         }
     }
@@ -83,6 +90,7 @@ public final class ModEvents {
     public static void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             BattleRoyaleGame.onPlayerRespawn(player);
+            ArenaTimedGame.onPlayerRespawn(player);
             PlayerDrop.onRespawn(player);
         }
     }
@@ -105,18 +113,21 @@ public final class ModEvents {
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
-            SharedMatchStats.recordDeath(player);
+            if (SharedMatchStats.isMatchActive()) {
+                SharedMatchStats.recordDeath(player);
 
-            Entity sourceEntity = event.getSource().getEntity();
-            if (sourceEntity instanceof ServerPlayer killer && !killer.getUUID().equals(player.getUUID())) {
-                SharedMatchStats.recordKillIfPlayer(killer);
+                Entity sourceEntity = event.getSource().getEntity();
+                if (sourceEntity instanceof ServerPlayer killer && !killer.getUUID().equals(player.getUUID())) {
+                    SharedMatchStats.recordKillIfPlayer(killer);
+                }
             }
 
             BattleRoyaleGame.onPlayerDeath(player);
+            ArenaTimedGame.onPlayerDeath(player);
             PlayerDrop.onDeath(player);
 
             MinecraftServer server = player.getServer();
-            if (server != null) {
+            if (server != null && SharedMatchStats.isMatchActive()) {
                 SharedMatchStats.syncAll(server);
             }
         }

@@ -18,6 +18,9 @@ import java.util.UUID;
 public final class SharedMatchStats {
 
     private static MatchPhase phase = MatchPhase.IDLE;
+    private static String modeId = "";
+    private static int timerSeconds = -1;
+    private static boolean showFinalResults;
 
     private static final Map<UUID, Integer> KILLS = new HashMap<>();
     private static final Map<UUID, Integer> DEATHS = new HashMap<>();
@@ -28,8 +31,12 @@ public final class SharedMatchStats {
     private SharedMatchStats() {
     }
 
-    public static void startMatch(MinecraftServer server, List<ServerPlayer> participants, int startingLives) {
+    public static void startMatch(MinecraftServer server, String mode,
+            List<ServerPlayer> participants, int startingLives) {
         phase = MatchPhase.RUNNING;
+        modeId = mode == null ? "" : mode;
+        timerSeconds = -1;
+        showFinalResults = false;
         KILLS.clear();
         DEATHS.clear();
         LIVES.clear();
@@ -49,8 +56,21 @@ public final class SharedMatchStats {
         syncAll(server);
     }
 
+    public static void setTimerSeconds(MinecraftServer server, int seconds) {
+        timerSeconds = Math.max(-1, seconds);
+        syncAll(server);
+    }
+
+    public static void setShowFinalResults(MinecraftServer server, boolean show) {
+        showFinalResults = show;
+        syncAll(server);
+    }
+
     public static void clear(MinecraftServer server) {
         phase = MatchPhase.IDLE;
+        modeId = "";
+        timerSeconds = -1;
+        showFinalResults = false;
         KILLS.clear();
         DEATHS.clear();
         LIVES.clear();
@@ -65,20 +85,37 @@ public final class SharedMatchStats {
     }
 
     public static void setLives(ServerPlayer player, int livesLeft) {
+        if (phase == MatchPhase.IDLE) {
+            return;
+        }
         LIVES.put(player.getUUID(), Math.max(0, livesLeft));
     }
 
     public static void recordDeath(ServerPlayer victim) {
+        if (phase == MatchPhase.IDLE) {
+            return;
+        }
         UUID victimId = victim.getUUID();
         DEATHS.merge(victimId, 1, Integer::sum);
     }
 
     public static void recordKillIfPlayer(ServerPlayer killer) {
+        if (phase == MatchPhase.IDLE) {
+            return;
+        }
         KILLS.merge(killer.getUUID(), 1, Integer::sum);
+    }
+
+    public static boolean isMatchActive() {
+        return phase != MatchPhase.IDLE;
     }
 
     public static int getKills(UUID playerId) {
         return KILLS.getOrDefault(playerId, 0);
+    }
+
+    public static List<PlayerMatchStats> getServerRows(MinecraftServer server) {
+        return buildServerSnapshot(server, null).players();
     }
 
     public static void syncAll(MinecraftServer server) {
@@ -117,11 +154,12 @@ public final class SharedMatchStats {
                 .thenComparing(Comparator.comparingInt(PlayerMatchStats::deaths))
                 .thenComparing(PlayerMatchStats::playerName, String.CASE_INSENSITIVE_ORDER));
 
-        return new MatchStatsSnapshot(phase, localPlayerId, List.copyOf(rows));
+        return new MatchStatsSnapshot(phase, modeId, timerSeconds, showFinalResults, localPlayerId, List.copyOf(rows));
     }
 
     private static MatchStatsSnapshot withLocalPlayer(MatchStatsSnapshot source, UUID localPlayerId) {
-        return new MatchStatsSnapshot(source.phase(), localPlayerId, source.players());
+        return new MatchStatsSnapshot(source.phase(), source.modeId(), source.timerSeconds(),
+                source.showFinalResults(), localPlayerId, source.players());
     }
 
     public static void setClientSnapshot(MatchStatsSnapshot snapshot) {

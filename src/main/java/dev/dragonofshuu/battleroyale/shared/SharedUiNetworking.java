@@ -46,6 +46,9 @@ public final class SharedUiNetworking {
 
         static void encode(StatsSnapshotPacket packet, FriendlyByteBuf buf) {
             buf.writeEnum(packet.snapshot.phase());
+            buf.writeUtf(packet.snapshot.modeId());
+            buf.writeVarInt(packet.snapshot.timerSeconds());
+            buf.writeBoolean(packet.snapshot.showFinalResults());
 
             boolean hasLocalPlayer = packet.snapshot.localPlayerId() != null;
             buf.writeBoolean(hasLocalPlayer);
@@ -67,6 +70,9 @@ public final class SharedUiNetworking {
 
         static StatsSnapshotPacket decode(FriendlyByteBuf buf) {
             MatchPhase phase = buf.readEnum(MatchPhase.class);
+            String modeId = buf.readUtf();
+            int timerSeconds = buf.readVarInt();
+            boolean showFinalResults = buf.readBoolean();
 
             UUID localPlayerId = null;
             if (buf.readBoolean()) {
@@ -85,7 +91,13 @@ public final class SharedUiNetworking {
                         buf.readVarInt()));
             }
 
-            return new StatsSnapshotPacket(new MatchStatsSnapshot(phase, localPlayerId, List.copyOf(players)));
+            return new StatsSnapshotPacket(new MatchStatsSnapshot(
+                    phase,
+                    modeId,
+                    timerSeconds,
+                    showFinalResults,
+                    localPlayerId,
+                    List.copyOf(players)));
         }
 
         static void handle(StatsSnapshotPacket packet,
