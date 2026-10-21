@@ -1,4 +1,4 @@
-package dev.dragonofshuu.battleroyale;
+package dev.dragonofshuu.battleroyale.modes.battleRoyale;
 
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;

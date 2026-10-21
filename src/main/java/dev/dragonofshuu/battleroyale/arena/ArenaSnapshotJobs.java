@@ -1,6 +1,5 @@
 package dev.dragonofshuu.battleroyale.arena;
 
-import dev.dragonofshuu.battleroyale.BattleRoyaleGame;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.nbt.CompoundTag;
@@ -25,6 +24,8 @@ import net.minecraft.world.phys.AABB;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import dev.dragonofshuu.battleroyale.modes.battleRoyale.BattleRoyaleGame;
 
 final class ArenaSnapshotJobs {
 

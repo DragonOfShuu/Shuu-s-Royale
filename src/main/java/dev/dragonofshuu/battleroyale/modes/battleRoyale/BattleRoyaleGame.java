@@ -1,6 +1,10 @@
-package dev.dragonofshuu.battleroyale;
+package dev.dragonofshuu.battleroyale.modes.battleRoyale;
 
 import dev.dragonofshuu.battleroyale.arena.ArenaSnapshot;
+import dev.dragonofshuu.battleroyale.shared.Loadout;
+import dev.dragonofshuu.battleroyale.shared.Loadout.LoadoutClass;
+import dev.dragonofshuu.battleroyale.shared.MatchPhase;
+import dev.dragonofshuu.battleroyale.shared.SharedMatchStats;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
@@ -13,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public final class BattleRoyaleGame {
 
@@ -20,7 +25,7 @@ public final class BattleRoyaleGame {
     private static final int TICKS_PER_SECOND = 20;
     private static final long MILLIS_PER_TICK = 50L;
 
-    enum Phase {
+    public enum Phase {
         IDLE, WAR, SHRINKING, FINISHED, ENDING
     }
 
@@ -78,6 +83,12 @@ public final class BattleRoyaleGame {
         BattleRoyalePlayers.prepareParticipants(server, level, centerX, centerZ, borderSize, lives,
                 ELIMINATED_TAG, LIVES_LEFT, PLAYER_LOADOUTS);
 
+        SharedMatchStats.startMatch(server,
+            server.getPlayerList().getPlayers().stream()
+                .filter(player -> LIVES_LEFT.containsKey(player.getUUID()))
+                .collect(Collectors.toList()),
+            lives);
+
         updateBar();
         addAllPlayers(server);
 
@@ -94,6 +105,7 @@ public final class BattleRoyaleGame {
     public static void stop(MinecraftServer server) {
         BattleRoyalePlayers.restoreEliminatedPlayers(server, ELIMINATED_TAG);
         resetBorder(server);
+        SharedMatchStats.clear(server);
         reset();
         server.getPlayerList().getPlayers().forEach(BattleRoyalePlayers::clearForFreshLoadout);
         broadcast(server, "The game has been stopped.");
@@ -131,11 +143,14 @@ public final class BattleRoyaleGame {
 
         int livesLeft = Math.max(0, LIVES_LEFT.get(id) - 1);
         LIVES_LEFT.put(id, livesLeft);
+        SharedMatchStats.setLives(player, livesLeft);
 
         MinecraftServer server = player.getServer();
         if (server == null) {
             return;
         }
+
+        SharedMatchStats.syncAll(server);
 
         if (livesLeft > 0) {
             return;
@@ -237,18 +252,21 @@ public final class BattleRoyaleGame {
         BattleRoyaleAnnouncements.announceNiceDeath(server);
         phase = Phase.ENDING;
         postWinResetTicks = 5 * TICKS_PER_SECOND;
+        SharedMatchStats.setPhase(server, MatchPhase.POST_GAME);
     }
 
     private static void announceTeamWin(MinecraftServer server, Team team, List<ServerPlayer> contenders) {
         BattleRoyaleAnnouncements.announceTeamWin(server, team, contenders);
         phase = Phase.ENDING;
         postWinResetTicks = 5 * TICKS_PER_SECOND;
+        SharedMatchStats.setPhase(server, MatchPhase.POST_GAME);
     }
 
     private static void announcePlayerWin(MinecraftServer server, ServerPlayer winner) {
         BattleRoyaleAnnouncements.announcePlayerWin(server, winner);
         phase = Phase.ENDING;
         postWinResetTicks = 5 * TICKS_PER_SECOND;
+        SharedMatchStats.setPhase(server, MatchPhase.POST_GAME);
     }
 
     private static void resetArenaAndGame(MinecraftServer server) {

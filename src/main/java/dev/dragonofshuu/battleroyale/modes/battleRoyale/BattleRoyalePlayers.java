@@ -1,4 +1,4 @@
-package dev.dragonofshuu.battleroyale;
+package dev.dragonofshuu.battleroyale.modes.battleRoyale;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -14,6 +14,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import dev.dragonofshuu.battleroyale.shared.Loadout;
+import dev.dragonofshuu.battleroyale.shared.PlayerDrop;
+import dev.dragonofshuu.battleroyale.shared.Loadout.LoadoutClass;
 
 final class BattleRoyalePlayers {
 

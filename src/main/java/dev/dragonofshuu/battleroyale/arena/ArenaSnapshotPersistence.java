@@ -1,6 +1,5 @@
 package dev.dragonofshuu.battleroyale.arena;
 
-import dev.dragonofshuu.battleroyale.BattleRoyaleGame;
 import net.minecraft.Util;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -17,6 +16,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
+
+import dev.dragonofshuu.battleroyale.modes.battleRoyale.BattleRoyaleGame;
 
 final class ArenaSnapshotPersistence {
 

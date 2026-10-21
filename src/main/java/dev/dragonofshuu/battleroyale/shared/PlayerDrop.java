@@ -1,4 +1,4 @@
-package dev.dragonofshuu.battleroyale;
+package dev.dragonofshuu.battleroyale.shared;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;

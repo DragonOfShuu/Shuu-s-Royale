@@ -1,4 +1,4 @@
-package dev.dragonofshuu.battleroyale;
+package dev.dragonofshuu.battleroyale.shared;
 
 import org.slf4j.Logger;
 

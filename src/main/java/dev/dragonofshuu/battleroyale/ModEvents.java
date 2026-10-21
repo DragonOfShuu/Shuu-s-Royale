@@ -1,8 +1,12 @@
 package dev.dragonofshuu.battleroyale;
 
 import dev.dragonofshuu.battleroyale.arena.ArenaSnapshot;
+import dev.dragonofshuu.battleroyale.modes.battleRoyale.BattleRoyaleGame;
+import dev.dragonofshuu.battleroyale.shared.PlayerDrop;
+import dev.dragonofshuu.battleroyale.shared.SharedMatchStats;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.TickEvent;
@@ -24,7 +28,7 @@ public final class ModEvents {
 
     @SubscribeEvent
     public static void onRegisterCommands(RegisterCommandsEvent event) {
-        BrCommands.register(event);
+        ModCommands.register(event);
     }
 
     @SubscribeEvent
@@ -52,15 +56,18 @@ public final class ModEvents {
     public static void onServerStopped(ServerStoppedEvent event) {
         // Static state survives between singleplayer worlds in the same session, so
         // clear it.
+        SharedMatchStats.clear(event.getServer());
         BattleRoyaleGame.reset();
         ArenaSnapshot.clear();
         PlayerDrop.clear();
+        SharedMatchStats.clearClientSnapshot();
     }
 
     @SubscribeEvent
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             PlayerDrop.onLogin(player);
+            SharedMatchStats.syncOne(player);
         }
     }
 
@@ -98,8 +105,20 @@ public final class ModEvents {
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
+            SharedMatchStats.recordDeath(player);
+
+            Entity sourceEntity = event.getSource().getEntity();
+            if (sourceEntity instanceof ServerPlayer killer && !killer.getUUID().equals(player.getUUID())) {
+                SharedMatchStats.recordKillIfPlayer(killer);
+            }
+
             BattleRoyaleGame.onPlayerDeath(player);
             PlayerDrop.onDeath(player);
+
+            MinecraftServer server = player.getServer();
+            if (server != null) {
+                SharedMatchStats.syncAll(server);
+            }
         }
     }
 }

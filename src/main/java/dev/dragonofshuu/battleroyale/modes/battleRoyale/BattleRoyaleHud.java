@@ -1,5 +1,6 @@
-package dev.dragonofshuu.battleroyale;
+package dev.dragonofshuu.battleroyale.modes.battleRoyale;
 
+import dev.dragonofshuu.battleroyale.modes.battleRoyale.BattleRoyaleGame.Phase;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerBossEvent;
@@ -7,7 +8,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.BossEvent;
 
-final class BattleRoyaleHud {
+public final class BattleRoyaleHud {
 
     private static final int TICKS_PER_SECOND = 20;
 
