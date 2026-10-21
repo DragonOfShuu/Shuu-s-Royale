@@ -163,7 +163,8 @@ final class MatchLeaderboardPanelRenderer {
         return new ColumnLayout(nameX, killsLeft, killsRight, deathsRight, livesRight);
     }
 
-    private static void drawRightAligned(GuiGraphics guiGraphics, Font font, String value, int rightX, int y, int color) {
+    private static void drawRightAligned(GuiGraphics guiGraphics, Font font, String value, int rightX, int y,
+            int color) {
         guiGraphics.drawString(font, value, rightX - font.width(value), y, color, false);
     }
 
