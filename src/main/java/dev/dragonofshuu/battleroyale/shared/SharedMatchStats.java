@@ -12,7 +12,8 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Shared match stats cache. Server updates this, client reads from synced snapshot.
+ * Shared match stats cache. Server updates this, client reads from synced
+ * snapshot.
  */
 public final class SharedMatchStats {
 

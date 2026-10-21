@@ -84,10 +84,10 @@ public final class BattleRoyaleGame {
                 ELIMINATED_TAG, LIVES_LEFT, PLAYER_LOADOUTS);
 
         SharedMatchStats.startMatch(server,
-            server.getPlayerList().getPlayers().stream()
-                .filter(player -> LIVES_LEFT.containsKey(player.getUUID()))
-                .collect(Collectors.toList()),
-            lives);
+                server.getPlayerList().getPlayers().stream()
+                        .filter(player -> LIVES_LEFT.containsKey(player.getUUID()))
+                        .collect(Collectors.toList()),
+                lives);
 
         updateBar();
         addAllPlayers(server);
