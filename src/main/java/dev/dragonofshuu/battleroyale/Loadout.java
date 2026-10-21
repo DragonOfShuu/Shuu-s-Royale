@@ -6,13 +6,18 @@ import com.mojang.logging.LogUtils;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.DyeableLeatherItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.scores.Team;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.wrapper.PlayerMainInvWrapper;
 import net.minecraftforge.items.wrapper.RangedWrapper;
 import net.minecraftforge.registries.ForgeRegistries;
+
+import java.util.Locale;
 
 /**
  * Starting gear handed to every participant when the game begins.
@@ -32,6 +37,7 @@ public final class Loadout {
     }
 
     public static void giveLoadout(ServerPlayer player, LoadoutClass loadoutClass) {
+        giveTeamArmor(player);
         giveBaseLoadout(player);
 
         switch (loadoutClass) {
@@ -42,6 +48,75 @@ public final class Loadout {
         }
 
         giveTouchUps(player);
+    }
+
+    private static void giveTeamArmor(ServerPlayer player) {
+        Integer armorColor = getTeamLeatherColor(player.getTeam());
+
+        player.setItemSlot(EquipmentSlot.HEAD, createLeatherArmor(Items.LEATHER_HELMET, armorColor));
+        player.setItemSlot(EquipmentSlot.LEGS, createLeatherArmor(Items.LEATHER_LEGGINGS, armorColor));
+        player.setItemSlot(EquipmentSlot.FEET, createLeatherArmor(Items.LEATHER_BOOTS, armorColor));
+
+        ItemStack chestplate = createLeatherArmor(Items.LEATHER_CHESTPLATE, armorColor);
+        ItemStack currentChest = player.getItemBySlot(EquipmentSlot.CHEST);
+        if (currentChest.isEmpty()) {
+            player.setItemSlot(EquipmentSlot.CHEST, chestplate);
+        } else if (!player.getInventory().add(chestplate) && !player.level().isClientSide()) {
+            player.drop(chestplate, false);
+        }
+    }
+
+    private static ItemStack createLeatherArmor(Item item, Integer color) {
+        ItemStack stack = new ItemStack(item);
+        if (color != null && item instanceof DyeableLeatherItem dyeable) {
+            dyeable.setColor(stack, color);
+        }
+        return stack;
+    }
+
+    private static Integer getTeamLeatherColor(Team team) {
+        if (team == null) {
+            return null;
+        }
+
+        String teamName = team.getName().toLowerCase(Locale.ROOT)
+                .replace('-', '_')
+                .replace(' ', '_');
+
+        if (teamName.contains("white"))
+            return 0xF9FFFE;
+        if (teamName.contains("orange"))
+            return 0xF9801D;
+        if (teamName.contains("magenta"))
+            return 0xC74EBD;
+        if (teamName.contains("light_blue"))
+            return 0x3AB3DA;
+        if (teamName.contains("yellow"))
+            return 0xFED83D;
+        if (teamName.contains("lime"))
+            return 0x80C71F;
+        if (teamName.contains("pink"))
+            return 0xF38BAA;
+        if (teamName.contains("gray"))
+            return 0x474F52;
+        if (teamName.contains("light_gray") || teamName.contains("silver"))
+            return 0x9D9D97;
+        if (teamName.contains("cyan"))
+            return 0x169C9C;
+        if (teamName.contains("purple"))
+            return 0x8932B8;
+        if (teamName.contains("blue"))
+            return 0x3C44AA;
+        if (teamName.contains("brown"))
+            return 0x835432;
+        if (teamName.contains("green"))
+            return 0x5E7C16;
+        if (teamName.contains("red"))
+            return 0xB02E26;
+        if (teamName.contains("black"))
+            return 0x1D1D21;
+
+        return null;
     }
 
     private static void giveBaseLoadout(ServerPlayer player) {
@@ -75,6 +150,7 @@ public final class Loadout {
     private static void giveTouchUps(ServerPlayer player) {
         var inventory = player.getInventory();
 
+        inventory.add(6, new ItemStack(Items.DIAMOND_PICKAXE));
         inventory.add(7, new ItemStack(Items.TNT, 32));
         inventory.add(8, new ItemStack(Items.FLINT_AND_STEEL));
     }
@@ -118,7 +194,8 @@ public final class Loadout {
 
     public static void giveCloseCombatClassLoadout(ServerPlayer player) {
         String[] closeCombatClassItems = {
-                "cgm:shotgun"
+                "cgm:shotgun",
+                "minecraft:diamond_sword"
         };
         for (String itemId : closeCombatClassItems) {
             give(player, itemId, 1, false);

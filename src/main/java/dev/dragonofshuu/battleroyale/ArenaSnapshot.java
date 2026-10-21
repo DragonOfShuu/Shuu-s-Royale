@@ -25,7 +25,6 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.border.WorldBorder;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.chunk.PalettedContainer;
@@ -70,6 +69,7 @@ public final class ArenaSnapshot {
 
     private static final String BACKUP_FOLDER = "battleroyale_backup";
     private static final String META_FILE = "meta.dat";
+    private static final String CONFIG_FILE = "arena_config.dat";
 
     // Same codec vanilla uses to store chunk sections in region files.
     private static final Codec<PalettedContainer<BlockState>> SECTION_CODEC = PalettedContainer.codecRW(
@@ -92,6 +92,12 @@ public final class ArenaSnapshot {
     private static double centerX;
     private static double centerZ;
     private static int size;
+    private static boolean arenaConfigured;
+    private static int warTime;
+    private static int shrinkAmount;
+    private static int shrinkTime;
+    private static int lives;
+    private static boolean gameSettingsConfigured;
     private static CompletableFuture<?> pendingIo = CompletableFuture.completedFuture(null);
 
     private ArenaSnapshot() {
@@ -106,7 +112,90 @@ public final class ArenaSnapshot {
         return state == State.READY;
     }
 
+    public static boolean hasArenaConfig() {
+        return arenaConfigured;
+    }
+
+    public static boolean hasGameSettings() {
+        return gameSettingsConfigured;
+    }
+
+    public static double getCenterX() {
+        return centerX;
+    }
+
+    public static double getCenterZ() {
+        return centerZ;
+    }
+
+    public static int getSize() {
+        return size;
+    }
+
+    public static int getWarTime() {
+        return warTime;
+    }
+
+    public static int getShrinkAmount() {
+        return shrinkAmount;
+    }
+
+    public static int getShrinkTime() {
+        return shrinkTime;
+    }
+
+    public static int getLives() {
+        return lives;
+    }
+
+    public static void setArenaConfig(MinecraftServer server, double cx, double cz, int arenaSize) {
+        centerX = cx;
+        centerZ = cz;
+        size = arenaSize;
+        arenaConfigured = true;
+        saveConfigAsync(server);
+    }
+
+    public static void setWarTime(MinecraftServer server, int value) {
+        warTime = value;
+        gameSettingsConfigured = true;
+        saveConfigAsync(server);
+    }
+
+    public static void setShrinkAmount(MinecraftServer server, int value) {
+        shrinkAmount = value;
+        gameSettingsConfigured = true;
+        saveConfigAsync(server);
+    }
+
+    public static void setShrinkTime(MinecraftServer server, int value) {
+        shrinkTime = value;
+        gameSettingsConfigured = true;
+        saveConfigAsync(server);
+    }
+
+    public static void setLives(MinecraftServer server, int value) {
+        lives = value;
+        gameSettingsConfigured = true;
+        saveConfigAsync(server);
+    }
+
+    public static void setGameSettings(MinecraftServer server, int warTime, int shrinkAmount, int shrinkTime, int lives) {
+        ArenaSnapshot.warTime = warTime;
+        ArenaSnapshot.shrinkAmount = shrinkAmount;
+        ArenaSnapshot.shrinkTime = shrinkTime;
+        ArenaSnapshot.lives = lives;
+        gameSettingsConfigured = true;
+        saveConfigAsync(server);
+    }
+
     public static void clear() {
+        clearBackupState();
+        arenaConfigured = false;
+        gameSettingsConfigured = false;
+    }
+
+    private static void clearBackupState() {
         SAVED.clear();
         QUEUE.clear();
         state = State.EMPTY;
@@ -117,10 +206,11 @@ public final class ArenaSnapshot {
     // ------------------------------------------------------------------
 
     public static void beginCapture(MinecraftServer server, double cx, double cz, int arenaSize) {
-        clear();
+        clearBackupState();
         centerX = cx;
         centerZ = cz;
         size = arenaSize;
+        arenaConfigured = true;
 
         double half = arenaSize / 2.0;
         int minChunkX = SectionPos.blockToSectionCoord(Mth.floor(cx - half));
@@ -313,11 +403,27 @@ public final class ArenaSnapshot {
                 }));
     }
 
+    private static void saveConfigAsync(MinecraftServer server) {
+        Path dir = backupDir(server);
+        double cx = centerX;
+        double cz = centerZ;
+        int arenaSize = size;
+
+        pendingIo = CompletableFuture.runAsync(() -> writeConfigToDisk(dir, cx, cz, arenaSize), Util.ioPool())
+                .whenComplete((ignored, error) -> {
+                    if (error != null) {
+                        LOGGER.error("Failed to save arena config", error);
+                    }
+                });
+    }
+
     /**
      * Called when the server starts. Loads an existing backup in the background.
      */
     public static void loadFromDisk(MinecraftServer server) {
         Path dir = backupDir(server);
+        loadConfigFromDisk(dir);
+
         if (!Files.exists(dir.resolve(META_FILE)))
             return;
 
@@ -336,6 +442,7 @@ public final class ArenaSnapshot {
                     centerX = backup.centerX();
                     centerZ = backup.centerZ();
                     size = backup.size();
+                    arenaConfigured = true;
                     state = State.READY;
                     LOGGER.info("Loaded arena backup: {} chunks, size {}", backup.chunks().size(), backup.size());
                 }));
@@ -361,11 +468,14 @@ public final class ArenaSnapshot {
             Files.deleteIfExists(dir.resolve(META_FILE));
             try (Stream<Path> files = Files.list(dir)) {
                 for (Path file : files.toList()) {
-                    if (file.getFileName().toString().endsWith(".dat")) {
+                    String fileName = file.getFileName().toString();
+                    if (fileName.endsWith(".dat") && !fileName.equals(CONFIG_FILE)) {
                         Files.delete(file);
                     }
                 }
             }
+
+            writeConfigToDisk(dir, backup.centerX(), backup.centerZ(), backup.size());
 
             // Group chunks into one file per 32x32-chunk region
             Map<Long, ListTag> regions = new HashMap<>();
@@ -392,6 +502,58 @@ public final class ArenaSnapshot {
             writeTag(dir.resolve(META_FILE), meta);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
+        }
+    }
+
+    private static void writeConfigToDisk(Path dir, double cx, double cz, int arenaSize) {
+        try {
+            Files.createDirectories(dir);
+            CompoundTag config = new CompoundTag();
+            config.putInt("DataVersion", currentDataVersion());
+            config.putDouble("CenterX", cx);
+            config.putDouble("CenterZ", cz);
+            config.putInt("Size", arenaSize);
+            config.putInt("WarTime", warTime);
+            config.putInt("ShrinkAmount", shrinkAmount);
+            config.putInt("ShrinkTime", shrinkTime);
+            config.putInt("Lives", lives);
+            config.putBoolean("GameSettingsConfigured", gameSettingsConfigured);
+            writeTag(dir.resolve(CONFIG_FILE), config);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static void loadConfigFromDisk(Path dir) {
+        Path configPath = dir.resolve(CONFIG_FILE);
+        if (!Files.exists(configPath)) {
+            return;
+        }
+
+        try {
+            CompoundTag config = readTag(configPath);
+            centerX = config.getDouble("CenterX");
+            centerZ = config.getDouble("CenterZ");
+            size = config.getInt("Size");
+            arenaConfigured = size > 0;
+
+            if (config.contains("GameSettingsConfigured", Tag.TAG_BYTE)) {
+                gameSettingsConfigured = config.getBoolean("GameSettingsConfigured");
+            } else {
+                gameSettingsConfigured = config.contains("WarTime", Tag.TAG_INT)
+                        && config.contains("ShrinkAmount", Tag.TAG_INT)
+                        && config.contains("ShrinkTime", Tag.TAG_INT)
+                        && config.contains("Lives", Tag.TAG_INT);
+            }
+
+            if (gameSettingsConfigured) {
+                warTime = config.getInt("WarTime");
+                shrinkAmount = config.getInt("ShrinkAmount");
+                shrinkTime = config.getInt("ShrinkTime");
+                lives = config.getInt("Lives");
+            }
+        } catch (IOException e) {
+            LOGGER.error("Failed to load arena config", e);
         }
     }
 

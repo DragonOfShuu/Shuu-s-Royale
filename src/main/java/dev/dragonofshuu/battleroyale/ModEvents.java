@@ -8,7 +8,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageTypes;
-import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
@@ -35,17 +34,37 @@ public final class ModEvents {
                 Commands.literal("br")
                         .requires(source -> source.hasPermission(2))
                         .then(Commands.literal("start")
-                                .then(Commands.argument("borderSize", IntegerArgumentType.integer(11, 59_999_968))
-                                        .then(Commands.argument("warTime", IntegerArgumentType.integer(1))
-                                                .then(Commands.argument("shrinkAmount", IntegerArgumentType.integer(1))
-                                                        .then(Commands
-                                                                .argument("shrinkTime", IntegerArgumentType.integer(1))
-                                                                .executes(ModEvents::startGame))))))
+                    .executes(ModEvents::startGame))
                         .then(Commands.literal("stop")
                                 .executes(ModEvents::stopGame))
                         .then(Commands.literal("backup")
-                                .then(Commands.argument("size", IntegerArgumentType.integer(11, MAX_BACKUP_SIZE))
-                                        .executes(ModEvents::backupArena)))
+                    .executes(ModEvents::backupArena))
+                .then(Commands.literal("settings")
+                    .then(Commands.literal("warTime")
+                        .then(Commands.argument("value", IntegerArgumentType.integer(1))
+                            .executes(ModEvents::setWarTime)))
+                    .then(Commands.literal("shrinkAmount")
+                        .then(Commands.argument("value", IntegerArgumentType.integer(1))
+                            .executes(ModEvents::setShrinkAmount)))
+                    .then(Commands.literal("shrinkTime")
+                        .then(Commands.argument("value", IntegerArgumentType.integer(1))
+                            .executes(ModEvents::setShrinkTime)))
+                    .then(Commands.literal("lives")
+                        .then(Commands.argument("value", IntegerArgumentType.integer(0))
+                            .executes(ModEvents::setLives))))
+                .then(Commands.literal("set")
+                    .then(Commands.literal("center")
+                        .then(Commands.argument("size", IntegerArgumentType.integer(11, MAX_BACKUP_SIZE))
+                            .executes(ModEvents::setCenter))))
+                .then(Commands.literal("init")
+                    .then(Commands.argument("size", IntegerArgumentType.integer(11, MAX_BACKUP_SIZE))
+                        .executes(ModEvents::initArena)
+                        .then(Commands.argument("warTime", IntegerArgumentType.integer(1))
+                            .then(Commands.argument("shrinkAmount", IntegerArgumentType.integer(1))
+                                .then(Commands.argument("shrinkTime", IntegerArgumentType.integer(1))
+                                    .executes(ModEvents::initArenaWithSettings)
+                                    .then(Commands.argument("lives", IntegerArgumentType.integer(0))
+                                        .executes(ModEvents::initArenaWithSettings)))))))
                         .then(Commands.literal("reset")
                                 .executes(ModEvents::resetArena)));
     }
@@ -63,6 +82,16 @@ public final class ModEvents {
         if (!requireOverworld(source))
             return 0;
 
+        if (!ArenaSnapshot.hasArenaConfig()) {
+            source.sendFailure(Component.literal("Arena center/size not set. Use /br set center <size> or /br init <size>."));
+            return 0;
+        }
+        if (!ArenaSnapshot.hasGameSettings()) {
+            source.sendFailure(Component.literal(
+                    "Game settings not set. Use /br settings <warTime|shrinkAmount|shrinkTime|lives> <value> or /br init <size> <warTime> <shrinkAmount> <shrinkTime> [lives]."));
+            return 0;
+        }
+
         if (BattleRoyaleGame.isRunning()) {
             source.sendFailure(Component.literal("A game is already running."));
             return 0;
@@ -72,14 +101,50 @@ public final class ModEvents {
             return 0;
         }
 
-        Vec3 pos = source.getPosition();
         BattleRoyaleGame.start(
                 source.getServer(),
-                pos.x, pos.z,
-                IntegerArgumentType.getInteger(ctx, "borderSize"),
-                IntegerArgumentType.getInteger(ctx, "warTime"),
-                IntegerArgumentType.getInteger(ctx, "shrinkAmount"),
-                IntegerArgumentType.getInteger(ctx, "shrinkTime"));
+                ArenaSnapshot.getCenterX(), ArenaSnapshot.getCenterZ(),
+                ArenaSnapshot.getSize(),
+            ArenaSnapshot.getWarTime(),
+            ArenaSnapshot.getShrinkAmount(),
+            ArenaSnapshot.getShrinkTime(),
+            ArenaSnapshot.getLives());
+        return 1;
+    }
+
+    private static int getLivesArg(CommandContext<CommandSourceStack> ctx) {
+        try {
+            return IntegerArgumentType.getInteger(ctx, "lives");
+        } catch (IllegalArgumentException ignored) {
+            return 5;
+        }
+    }
+
+    private static int setWarTime(CommandContext<CommandSourceStack> ctx) {
+        CommandSourceStack source = ctx.getSource();
+        ArenaSnapshot.setWarTime(source.getServer(), IntegerArgumentType.getInteger(ctx, "value"));
+        source.sendSuccess(() -> Component.literal("War time set."), true);
+        return 1;
+    }
+
+    private static int setShrinkAmount(CommandContext<CommandSourceStack> ctx) {
+        CommandSourceStack source = ctx.getSource();
+        ArenaSnapshot.setShrinkAmount(source.getServer(), IntegerArgumentType.getInteger(ctx, "value"));
+        source.sendSuccess(() -> Component.literal("Shrink amount set."), true);
+        return 1;
+    }
+
+    private static int setShrinkTime(CommandContext<CommandSourceStack> ctx) {
+        CommandSourceStack source = ctx.getSource();
+        ArenaSnapshot.setShrinkTime(source.getServer(), IntegerArgumentType.getInteger(ctx, "value"));
+        source.sendSuccess(() -> Component.literal("Shrink time set."), true);
+        return 1;
+    }
+
+    private static int setLives(CommandContext<CommandSourceStack> ctx) {
+        CommandSourceStack source = ctx.getSource();
+        ArenaSnapshot.setLives(source.getServer(), IntegerArgumentType.getInteger(ctx, "value"));
+        source.sendSuccess(() -> Component.literal("Lives set."), true);
         return 1;
     }
 
@@ -97,6 +162,11 @@ public final class ModEvents {
         if (!requireOverworld(source))
             return 0;
 
+        if (!ArenaSnapshot.hasArenaConfig()) {
+            source.sendFailure(Component.literal("Arena center/size not set. Use /br set center <size> or /br init <size>."));
+            return 0;
+        }
+
         if (BattleRoyaleGame.isRunning()) {
             source.sendFailure(Component.literal("Stop the current game before making a backup."));
             return 0;
@@ -106,9 +176,77 @@ public final class ModEvents {
             return 0;
         }
 
-        Vec3 pos = source.getPosition();
-        ArenaSnapshot.beginCapture(source.getServer(), pos.x, pos.z,
-                IntegerArgumentType.getInteger(ctx, "size"));
+        ArenaSnapshot.beginCapture(source.getServer(), ArenaSnapshot.getCenterX(), ArenaSnapshot.getCenterZ(),
+                ArenaSnapshot.getSize());
+        return 1;
+    }
+
+    private static int setCenter(CommandContext<CommandSourceStack> ctx) {
+        CommandSourceStack source = ctx.getSource();
+        if (!requireOverworld(source))
+            return 0;
+
+        if (ArenaSnapshot.isBusy()) {
+            source.sendFailure(Component.literal("A backup or restore is already in progress."));
+            return 0;
+        }
+
+        int size = IntegerArgumentType.getInteger(ctx, "size");
+        var pos = source.getPosition();
+        ArenaSnapshot.setArenaConfig(source.getServer(), pos.x, pos.z, size);
+        source.sendSuccess(() -> Component.literal("Arena center set to "
+                + String.format("%.1f, %.1f", pos.x, pos.z) + " with size " + size + "."), true);
+        return 1;
+    }
+
+    private static int initArena(CommandContext<CommandSourceStack> ctx) {
+        CommandSourceStack source = ctx.getSource();
+        if (!requireOverworld(source))
+            return 0;
+
+        if (BattleRoyaleGame.isRunning()) {
+            source.sendFailure(Component.literal("Stop the current game before initializing the arena."));
+            return 0;
+        }
+        if (ArenaSnapshot.isBusy()) {
+            source.sendFailure(Component.literal("A backup or restore is already in progress."));
+            return 0;
+        }
+
+        int size = IntegerArgumentType.getInteger(ctx, "size");
+        var pos = source.getPosition();
+        ArenaSnapshot.setArenaConfig(source.getServer(), pos.x, pos.z, size);
+        ArenaSnapshot.beginCapture(source.getServer(), pos.x, pos.z, size);
+        source.sendSuccess(() -> Component.literal("Arena center set and backup initialization started."), true);
+        return 1;
+    }
+
+    private static int initArenaWithSettings(CommandContext<CommandSourceStack> ctx) {
+        CommandSourceStack source = ctx.getSource();
+        if (!requireOverworld(source))
+            return 0;
+
+        if (BattleRoyaleGame.isRunning()) {
+            source.sendFailure(Component.literal("Stop the current game before initializing the arena."));
+            return 0;
+        }
+        if (ArenaSnapshot.isBusy()) {
+            source.sendFailure(Component.literal("A backup or restore is already in progress."));
+            return 0;
+        }
+
+        int size = IntegerArgumentType.getInteger(ctx, "size");
+        int warTime = IntegerArgumentType.getInteger(ctx, "warTime");
+        int shrinkAmount = IntegerArgumentType.getInteger(ctx, "shrinkAmount");
+        int shrinkTime = IntegerArgumentType.getInteger(ctx, "shrinkTime");
+        int lives = getLivesArg(ctx);
+
+        var pos = source.getPosition();
+        ArenaSnapshot.setArenaConfig(source.getServer(), pos.x, pos.z, size);
+        ArenaSnapshot.setGameSettings(source.getServer(), warTime, shrinkAmount, shrinkTime, lives);
+        ArenaSnapshot.beginCapture(source.getServer(), pos.x, pos.z, size);
+
+        source.sendSuccess(() -> Component.literal("Arena center, settings, and backup initialization started."), true);
         return 1;
     }
 
@@ -120,7 +258,7 @@ public final class ModEvents {
             return 0;
         }
         if (!ArenaSnapshot.hasBackup()) {
-            source.sendFailure(Component.literal("No arena backup exists. Use /br backup <size> first."));
+            source.sendFailure(Component.literal("No arena backup exists. Use /br backup first."));
             return 0;
         }
 
@@ -179,6 +317,7 @@ public final class ModEvents {
     @SubscribeEvent
     public static void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
+            BattleRoyaleGame.onPlayerRespawn(player);
             PlayerDrop.onRespawn(player);
         }
     }
@@ -201,6 +340,7 @@ public final class ModEvents {
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
+            BattleRoyaleGame.onPlayerDeath(player);
             PlayerDrop.onDeath(player);
         }
     }
