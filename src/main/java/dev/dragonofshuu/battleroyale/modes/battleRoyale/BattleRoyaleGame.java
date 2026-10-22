@@ -1,5 +1,6 @@
 package dev.dragonofshuu.battleroyale.modes.battleRoyale;
 
+import dev.dragonofshuu.battleroyale.arena.ArenaSafety;
 import dev.dragonofshuu.battleroyale.arena.ArenaSnapshot;
 import dev.dragonofshuu.battleroyale.shared.Loadout;
 import dev.dragonofshuu.battleroyale.shared.Loadout.LoadoutClass;
@@ -78,6 +79,7 @@ public final class BattleRoyaleGame {
         timer = warTicks;
         postWinResetTicks = 0;
         noWinningConditionAtStart = false;
+        ArenaSafety.setAllPlayersSurvival(server);
 
         // Drop participants into the arena and hand out starting gear
         BattleRoyalePlayers.prepareParticipants(server, level, centerX, centerZ, borderSize, lives,
@@ -105,10 +107,12 @@ public final class BattleRoyaleGame {
 
     public static void stop(MinecraftServer server) {
         BattleRoyalePlayers.restoreEliminatedPlayers(server, ELIMINATED_TAG);
+        ArenaSafety.clearGroundItems(server);
+        ArenaSafety.clearPlayerInventories(server);
+        ArenaSafety.setAllPlayersAdventure(server);
         resetBorder(server);
         SharedMatchStats.clear(server);
         reset();
-        server.getPlayerList().getPlayers().forEach(BattleRoyalePlayers::clearForFreshLoadout);
         broadcast(server, "The game has been stopped.");
     }
 
@@ -274,6 +278,10 @@ public final class BattleRoyaleGame {
         if (ArenaSnapshot.isBusy()) {
             return;
         }
+
+        ArenaSafety.clearGroundItems(server);
+        ArenaSafety.clearPlayerInventories(server);
+        ArenaSafety.setAllPlayersAdventure(server);
 
         if (isActive()) {
             stop(server);

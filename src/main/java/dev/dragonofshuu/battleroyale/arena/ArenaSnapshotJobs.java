@@ -162,25 +162,12 @@ final class ArenaSnapshotJobs {
             return;
         }
 
-        clearLeftoverEntities(level);
+        ArenaSafety.clearGroundItems(level, ArenaSnapshot.centerX, ArenaSnapshot.centerZ, ArenaSnapshot.size);
+        ArenaSafety.clearPlayerInventories(server);
+        ArenaSafety.setAllPlayersAdventure(server);
 
         ArenaSnapshot.state = ArenaSnapshot.State.READY;
         BattleRoyaleGame.broadcast(server, "Arena restored.");
-    }
-
-    private static void clearLeftoverEntities(ServerLevel level) {
-        double half = ArenaSnapshot.size / 2.0 + 16;
-        AABB area = new AABB(
-                ArenaSnapshot.centerX - half, level.getMinBuildHeight(), ArenaSnapshot.centerZ - half,
-                ArenaSnapshot.centerX + half, level.getMaxBuildHeight(), ArenaSnapshot.centerZ + half);
-
-        List<Entity> leftovers = level.getEntities((Entity) null, area, entity -> entity instanceof ItemEntity
-                || entity instanceof PrimedTnt
-                || entity instanceof FallingBlockEntity
-                || entity instanceof ExperienceOrb
-                || entity instanceof Projectile);
-
-        leftovers.forEach(Entity::discard);
     }
 
     private static void reportProgress(MinecraftServer server) {

@@ -1,5 +1,6 @@
 package dev.dragonofshuu.battleroyale.modes.arenaTimed;
 
+import dev.dragonofshuu.battleroyale.arena.ArenaSafety;
 import dev.dragonofshuu.battleroyale.arena.ArenaSnapshot;
 import dev.dragonofshuu.battleroyale.shared.Loadout;
 import dev.dragonofshuu.battleroyale.shared.MatchPhase;
@@ -61,6 +62,7 @@ public final class ArenaTimedGame {
         timerTicks = durationSeconds * TICKS_PER_SECOND;
         phaseTicks = 0;
         phase = Phase.RUNNING;
+        ArenaSafety.setAllPlayersSurvival(server);
 
         ArenaTimedPlayers.prepareParticipants(server, level, centerX, centerZ, borderSize, PLAYER_LOADOUTS);
 
@@ -72,10 +74,12 @@ public final class ArenaTimedGame {
     }
 
     public static void stop(MinecraftServer server) {
+        ArenaSafety.clearGroundItems(server);
+        ArenaSafety.clearPlayerInventories(server);
+        ArenaSafety.setAllPlayersAdventure(server);
         resetBorder(server);
         SharedMatchStats.clear(server);
         reset();
-        server.getPlayerList().getPlayers().forEach(ArenaTimedPlayers::clearForFreshLoadout);
         ArenaTimedAnnouncements.broadcast(server, "Arena Timed stopped.");
     }
 
@@ -201,6 +205,10 @@ public final class ArenaTimedGame {
         if (ArenaSnapshot.isBusy()) {
             return;
         }
+
+        ArenaSafety.clearGroundItems(server);
+        ArenaSafety.clearPlayerInventories(server);
+        ArenaSafety.setAllPlayersAdventure(server);
 
         if (isActive()) {
             stop(server);

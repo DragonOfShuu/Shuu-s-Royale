@@ -139,18 +139,11 @@ public final class Loadout {
     public static void giveSniperClassLoadout(ServerPlayer player) {
         HashMap<String, CompoundTag> sniperClassItems = new HashMap<>() {
             {
-                put("cgm:heavy_rifle", LoadoutNBT.loadedHeavyRifle(Optional.empty()));
+                put("cgm:heavy_rifle", LoadoutNBT.addLongScope(LoadoutNBT.loadedHeavyRifle(Optional.empty())));
             }
         };
         for (String itemId : sniperClassItems.keySet()) {
             give(player, itemId, 1, false, sniperClassItems.get(itemId));
-        }
-
-        String[] sniperClassOutsideHotbar = {
-                "cgm:long_scope"
-        };
-        for (String itemId : sniperClassOutsideHotbar) {
-            giveOutsideHotbar(player, itemId, 1, false);
         }
     }
 

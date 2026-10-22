@@ -4,6 +4,7 @@ import dev.dragonofshuu.battleroyale.BattleRoyale;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderGuiOverlayEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -14,6 +15,15 @@ import net.minecraftforge.fml.common.Mod;
  */
 @Mod.EventBusSubscriber(modid = BattleRoyale.MOD_ID, value = Dist.CLIENT)
 public final class SharedHudOverlay {
+
+    private static final ResourceLocation SKULL_ICON = new ResourceLocation(BattleRoyale.MOD_ID,
+            "textures/gui/skull-icon.png");
+
+    private static final int HUD_ICON_SIZE = 8;
+    private static final int HUD_GROUP_PADDING = 10;
+    private static final int FACE_U = 8;
+    private static final int FACE_V = 8;
+    private static final int SKIN_TEX_SIZE = 64;
 
     private static boolean resultsScreenOpened;
 
@@ -58,11 +68,12 @@ public final class SharedHudOverlay {
 
         Font font = mc.font;
         GuiGraphics gui = event.getGuiGraphics();
-        String text = "Kills: " + local.kills();
-        int x = event.getWindow().getGuiScaledWidth() / 2 - 91;
-        int y = event.getWindow().getGuiScaledHeight() - 59;
-        gui.drawString(font, text, x + 1, y + 1, 0x333333, false);
-        gui.drawString(font, text, x, y, 0xFFFFFF, false);
+        int x = event.getWindow().getGuiScaledWidth() / 2 + 96;
+        int y = event.getWindow().getGuiScaledHeight() - 11;
+
+        int killsWidth = drawSkullStat(gui, font, x, y, local.kills());
+        int livesX = x + killsWidth + HUD_GROUP_PADDING;
+        drawLivesStat(mc, gui, font, livesX, y, local.livesLeft());
 
         if (snapshot.timerSeconds() >= 0) {
             String timer = formatTimer(snapshot.timerSeconds());
@@ -125,6 +136,34 @@ public final class SharedHudOverlay {
         int minutes = safe / 60;
         int seconds = safe % 60;
         return String.format("Time Left: %d:%02d", minutes, seconds);
+    }
+
+    private static String formatLivesValue(int lives) {
+        return lives < 0 ? "INF" : Integer.toString(lives);
+    }
+
+    private static int drawSkullStat(GuiGraphics gui, Font font, int x, int y, int kills) {
+        String value = "x " + kills;
+        gui.blit(SKULL_ICON, x, y, 0, 0, HUD_ICON_SIZE, HUD_ICON_SIZE, HUD_ICON_SIZE, HUD_ICON_SIZE);
+        int textX = x + HUD_ICON_SIZE + 4;
+        drawHudValue(gui, font, value, textX, y + 1);
+        return (textX - x) + font.width(value);
+    }
+
+    private static int drawLivesStat(Minecraft mc, GuiGraphics gui, Font font, int x, int y, int livesLeft) {
+        String value = "x " + formatLivesValue(livesLeft);
+        ResourceLocation skinTexture = mc.player != null ? mc.player.getSkinTextureLocation() : null;
+        if (skinTexture != null) {
+            gui.blit(skinTexture, x, y, FACE_U, FACE_V, HUD_ICON_SIZE, HUD_ICON_SIZE, SKIN_TEX_SIZE, SKIN_TEX_SIZE);
+        }
+        int textX = x + HUD_ICON_SIZE + 4;
+        drawHudValue(gui, font, value, textX, y + 1);
+        return (textX - x) + font.width(value);
+    }
+
+    private static void drawHudValue(GuiGraphics gui, Font font, String value, int x, int y) {
+        gui.drawString(font, value, x + 1, y + 1, 0x333333, false);
+        gui.drawString(font, value, x, y, 0xFFFFFF, false);
     }
 
     private static void handleFinalResultsPopup(Minecraft mc, MatchStatsSnapshot snapshot) {
