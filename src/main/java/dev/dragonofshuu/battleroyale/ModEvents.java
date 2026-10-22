@@ -7,6 +7,7 @@ import dev.dragonofshuu.battleroyale.commands.ShuufpsCommands;
 import dev.dragonofshuu.battleroyale.modes.arenaTimed.ArenaTimedGame;
 import dev.dragonofshuu.battleroyale.modes.battleRoyale.BattleRoyaleGame;
 import dev.dragonofshuu.battleroyale.shared.PlayerDrop;
+import dev.dragonofshuu.battleroyale.shared.RechargeSystem;
 import dev.dragonofshuu.battleroyale.shared.SharedMatchStats;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -16,6 +17,7 @@ import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.living.LivingFallEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
@@ -45,6 +47,7 @@ public final class ModEvents {
             BattleRoyaleGame.tick(server);
             ArenaTimedGame.tick(server);
             PlayerDrop.tick(server);
+            RechargeSystem.tick(server);
         }
     }
 
@@ -69,6 +72,7 @@ public final class ModEvents {
         ArenaSnapshot.clear();
         PlayerDrop.clear();
         SharedMatchStats.clearClientSnapshot();
+        RechargeSystem.clear();
     }
 
     @SubscribeEvent
@@ -85,12 +89,14 @@ public final class ModEvents {
             BattleRoyaleGame.onPlayerLeave(player);
             // Arena Timed has no mode-specific leave cleanup currently.
             PlayerDrop.onLogout(player);
+            RechargeSystem.clearPlayer(player);
         }
     }
 
     @SubscribeEvent
     public static void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
+            RechargeSystem.onRespawn(player);
             BattleRoyaleGame.onPlayerRespawn(player);
             ArenaTimedGame.onPlayerRespawn(player);
             PlayerDrop.onRespawn(player);
@@ -110,6 +116,19 @@ public final class ModEvents {
                 && (event.getSource().is(DamageTypes.FALL) || event.getSource().is(DamageTypes.FLY_INTO_WALL))) {
             event.setCanceled(true);
         }
+    }
+
+    @SubscribeEvent
+    public static void onLivingHurt(LivingHurtEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer player)) {
+            return;
+        }
+
+        if (!SharedMatchStats.isMatchActive()) {
+            return;
+        }
+
+        RechargeSystem.onDamage(player);
     }
 
     @SubscribeEvent

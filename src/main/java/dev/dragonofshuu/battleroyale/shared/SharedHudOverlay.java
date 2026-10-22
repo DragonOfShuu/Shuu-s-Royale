@@ -21,7 +21,8 @@ public final class SharedHudOverlay {
     private static final ResourceLocation TARGET_ICON = ResourceLocation.fromNamespaceAndPath(BattleRoyale.MOD_ID,
             "textures/gui/target.png");
 
-    private static final int HUD_ICON_SIZE = 8;
+    private static final int PLAYER_ICON_SIZE = 8;
+    private static final int OTHER_ICON_SIZE = 9;
     private static final int HUD_GROUP_PADDING = 10;
     private static final int FACE_U = 8;
     private static final int FACE_V = 8;
@@ -148,16 +149,16 @@ public final class SharedHudOverlay {
 
     private static int drawKillsStat(GuiGraphics gui, Font font, int x, int y, int kills) {
         String value = "x " + kills;
-        gui.blit(TARGET_ICON, x, y, 0, 0, HUD_ICON_SIZE, HUD_ICON_SIZE, HUD_ICON_SIZE, HUD_ICON_SIZE);
-        int textX = x + HUD_ICON_SIZE + 4;
+        gui.blit(TARGET_ICON, x, y, 0, 0, OTHER_ICON_SIZE, OTHER_ICON_SIZE, OTHER_ICON_SIZE, OTHER_ICON_SIZE);
+        int textX = x + OTHER_ICON_SIZE + 4;
         drawHudValue(gui, font, value, textX, y + 1);
         return (textX - x) + font.width(value);
     }
 
     private static int drawDeathStat(GuiGraphics gui, Font font, int x, int y, int deaths) {
         String value = "x " + deaths;
-        gui.blit(SKULL_ICON, x, y, 0, 0, HUD_ICON_SIZE, HUD_ICON_SIZE, HUD_ICON_SIZE, HUD_ICON_SIZE);
-        int textX = x + HUD_ICON_SIZE + 4;
+        gui.blit(SKULL_ICON, x, y, 0, 0, OTHER_ICON_SIZE, OTHER_ICON_SIZE, OTHER_ICON_SIZE, OTHER_ICON_SIZE);
+        int textX = x + OTHER_ICON_SIZE + 4;
         drawHudValue(gui, font, value, textX, y + 1);
         return (textX - x) + font.width(value);
     }
@@ -166,9 +167,10 @@ public final class SharedHudOverlay {
         String value = "x " + formatLivesValue(livesLeft);
         ResourceLocation skinTexture = mc.player != null ? mc.player.getSkinTextureLocation() : null;
         if (skinTexture != null) {
-            gui.blit(skinTexture, x, y, FACE_U, FACE_V, HUD_ICON_SIZE, HUD_ICON_SIZE, SKIN_TEX_SIZE, SKIN_TEX_SIZE);
+            gui.blit(skinTexture, x, y, FACE_U, FACE_V, PLAYER_ICON_SIZE, PLAYER_ICON_SIZE, SKIN_TEX_SIZE,
+                    SKIN_TEX_SIZE);
         }
-        int textX = x + HUD_ICON_SIZE + 4;
+        int textX = x + PLAYER_ICON_SIZE + 4;
         drawHudValue(gui, font, value, textX, y + 1);
         return (textX - x) + font.width(value);
     }

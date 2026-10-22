@@ -120,6 +120,8 @@ public final class ArenaTimedGame {
         if (!isActive() || phase == Phase.ENDING) {
             return;
         }
+
+        ArenaTimedGameSettings.applyRevisedMaxHealth(player);
         ArenaTimedPlayers.respawnToDrop(player, PLAYER_LOADOUTS);
     }
 

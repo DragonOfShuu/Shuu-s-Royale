@@ -15,6 +15,7 @@ public final class BattleRoyaleGameSettings {
     private static final double EXTRA_HEARTS = 20.0D;
 
     private static final Map<UUID, Double> ORIGINAL_MAX_HEALTH = new HashMap<>();
+    private static final double DEFAULT_MAX_HEALTH = 20.0D;
     private static boolean priorNaturalRegeneration;
     private static boolean priorKeepInventory;
     private static Difficulty priorDifficulty = Difficulty.NORMAL;
@@ -34,10 +35,19 @@ public final class BattleRoyaleGameSettings {
 
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             ORIGINAL_MAX_HEALTH.put(player.getUUID(), player.getAttribute(Attributes.MAX_HEALTH).getBaseValue());
-            player.getAttribute(Attributes.MAX_HEALTH).setBaseValue(
-                    player.getAttribute(Attributes.MAX_HEALTH).getBaseValue() + EXTRA_HEARTS);
-            player.setHealth(player.getMaxHealth());
+            applyRevisedMaxHealth(player);
         }
+    }
+
+    public static void applyRevisedMaxHealth(ServerPlayer player) {
+        Double originalMaxHealth = ORIGINAL_MAX_HEALTH.get(player.getUUID());
+        if (originalMaxHealth == null) {
+            originalMaxHealth = DEFAULT_MAX_HEALTH;
+            ORIGINAL_MAX_HEALTH.put(player.getUUID(), originalMaxHealth);
+        }
+
+        player.getAttribute(Attributes.MAX_HEALTH).setBaseValue(20d + EXTRA_HEARTS);
+        player.setHealth(player.getMaxHealth());
     }
 
     public static void end(MinecraftServer server) {

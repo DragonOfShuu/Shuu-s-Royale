@@ -183,6 +183,8 @@ public final class BattleRoyaleGame {
             return;
         }
 
+        BattleRoyaleGameSettings.applyRevisedMaxHealth(player);
+
         UUID id = player.getUUID();
         Integer livesLeft = LIVES_LEFT.get(id);
         if (livesLeft == null) {

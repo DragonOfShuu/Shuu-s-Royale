@@ -34,10 +34,19 @@ public final class ArenaTimedGameSettings {
 
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             ORIGINAL_MAX_HEALTH.put(player.getUUID(), player.getAttribute(Attributes.MAX_HEALTH).getBaseValue());
-            player.getAttribute(Attributes.MAX_HEALTH).setBaseValue(
-                    player.getAttribute(Attributes.MAX_HEALTH).getBaseValue() + EXTRA_HEARTS);
-            player.setHealth(player.getMaxHealth());
+            applyRevisedMaxHealth(player);
         }
+    }
+
+    public static void applyRevisedMaxHealth(ServerPlayer player) {
+        Double originalMaxHealth = ORIGINAL_MAX_HEALTH.get(player.getUUID());
+        if (originalMaxHealth == null) {
+            originalMaxHealth = player.getAttribute(Attributes.MAX_HEALTH).getBaseValue();
+            ORIGINAL_MAX_HEALTH.put(player.getUUID(), originalMaxHealth);
+        }
+
+        player.getAttribute(Attributes.MAX_HEALTH).setBaseValue(20d + EXTRA_HEARTS);
+        player.setHealth(player.getMaxHealth());
     }
 
     public static void end(MinecraftServer server) {
