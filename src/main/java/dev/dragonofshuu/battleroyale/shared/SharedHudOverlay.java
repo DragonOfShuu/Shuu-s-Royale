@@ -16,8 +16,10 @@ import net.minecraftforge.fml.common.Mod;
 @Mod.EventBusSubscriber(modid = BattleRoyale.MOD_ID, value = Dist.CLIENT)
 public final class SharedHudOverlay {
 
-    private static final ResourceLocation SKULL_ICON = new ResourceLocation(BattleRoyale.MOD_ID,
-            "textures/gui/skull-icon.png");
+    private static final ResourceLocation SKULL_ICON = ResourceLocation.fromNamespaceAndPath(BattleRoyale.MOD_ID,
+            "textures/gui/skull.png");
+    private static final ResourceLocation TARGET_ICON = ResourceLocation.fromNamespaceAndPath(BattleRoyale.MOD_ID,
+            "textures/gui/target.png");
 
     private static final int HUD_ICON_SIZE = 8;
     private static final int HUD_GROUP_PADDING = 10;
@@ -71,8 +73,10 @@ public final class SharedHudOverlay {
         int x = event.getWindow().getGuiScaledWidth() / 2 + 96;
         int y = event.getWindow().getGuiScaledHeight() - 11;
 
-        int killsWidth = drawSkullStat(gui, font, x, y, local.kills());
-        int livesX = x + killsWidth + HUD_GROUP_PADDING;
+        int killsWidth = drawKillsStat(gui, font, x, y, local.kills());
+        int deathsX = x + killsWidth + HUD_GROUP_PADDING;
+        int deathsWidth = drawDeathStat(gui, font, deathsX, y, local.deaths());
+        int livesX = deathsX + deathsWidth + HUD_GROUP_PADDING;
         drawLivesStat(mc, gui, font, livesX, y, local.livesLeft());
 
         if (snapshot.timerSeconds() >= 0) {
@@ -142,8 +146,16 @@ public final class SharedHudOverlay {
         return lives < 0 ? "INF" : Integer.toString(lives);
     }
 
-    private static int drawSkullStat(GuiGraphics gui, Font font, int x, int y, int kills) {
+    private static int drawKillsStat(GuiGraphics gui, Font font, int x, int y, int kills) {
         String value = "x " + kills;
+        gui.blit(TARGET_ICON, x, y, 0, 0, HUD_ICON_SIZE, HUD_ICON_SIZE, HUD_ICON_SIZE, HUD_ICON_SIZE);
+        int textX = x + HUD_ICON_SIZE + 4;
+        drawHudValue(gui, font, value, textX, y + 1);
+        return (textX - x) + font.width(value);
+    }
+
+    private static int drawDeathStat(GuiGraphics gui, Font font, int x, int y, int deaths) {
+        String value = "x " + deaths;
         gui.blit(SKULL_ICON, x, y, 0, 0, HUD_ICON_SIZE, HUD_ICON_SIZE, HUD_ICON_SIZE, HUD_ICON_SIZE);
         int textX = x + HUD_ICON_SIZE + 4;
         drawHudValue(gui, font, value, textX, y + 1);

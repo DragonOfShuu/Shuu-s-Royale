@@ -1,0 +1,57 @@
+package dev.dragonofshuu.battleroyale.modes.battleRoyale;
+
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.Difficulty;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.level.GameRules;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+public final class BattleRoyaleGameSettings {
+
+    private static final double EXTRA_HEARTS = 20.0D;
+
+    private static final Map<UUID, Double> ORIGINAL_MAX_HEALTH = new HashMap<>();
+    private static boolean priorNaturalRegeneration;
+    private static boolean priorKeepInventory;
+    private static Difficulty priorDifficulty = Difficulty.NORMAL;
+
+    private BattleRoyaleGameSettings() {
+    }
+
+    public static void initiate(MinecraftServer server) {
+        GameRules rules = server.getGameRules();
+        priorNaturalRegeneration = rules.getRule(GameRules.RULE_NATURAL_REGENERATION).get();
+        priorKeepInventory = rules.getRule(GameRules.RULE_KEEPINVENTORY).get();
+        priorDifficulty = server.getWorldData().getDifficulty();
+
+        rules.getRule(GameRules.RULE_NATURAL_REGENERATION).set(false, server);
+        rules.getRule(GameRules.RULE_KEEPINVENTORY).set(true, server);
+        server.getWorldData().setDifficulty(Difficulty.PEACEFUL);
+
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            ORIGINAL_MAX_HEALTH.put(player.getUUID(), player.getAttribute(Attributes.MAX_HEALTH).getBaseValue());
+            player.getAttribute(Attributes.MAX_HEALTH).setBaseValue(
+                    player.getAttribute(Attributes.MAX_HEALTH).getBaseValue() + EXTRA_HEARTS);
+            player.setHealth(player.getMaxHealth());
+        }
+    }
+
+    public static void end(MinecraftServer server) {
+        GameRules rules = server.getGameRules();
+        rules.getRule(GameRules.RULE_NATURAL_REGENERATION).set(priorNaturalRegeneration, server);
+        rules.getRule(GameRules.RULE_KEEPINVENTORY).set(priorKeepInventory, server);
+        server.getWorldData().setDifficulty(priorDifficulty);
+
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            Double originalMaxHealth = ORIGINAL_MAX_HEALTH.remove(player.getUUID());
+            if (originalMaxHealth != null) {
+                player.getAttribute(Attributes.MAX_HEALTH).setBaseValue(originalMaxHealth);
+            }
+            player.setHealth(Math.min(player.getHealth(), player.getMaxHealth()));
+        }
+    }
+}

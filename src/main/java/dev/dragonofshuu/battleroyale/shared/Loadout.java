@@ -78,7 +78,8 @@ public final class Loadout {
     private static void giveBaseLoadout(ServerPlayer player) {
         HashMap<String, CompoundTag> baseItems = new HashMap<>() {
             {
-                put("cgm:assault_rifle", LoadoutNBT.addMediumScope(LoadoutNBT.loadedAssaultRifle(Optional.empty())));
+                put("cgm:assault_rifle", LoadoutNBT
+                        .addTacticalStock(LoadoutNBT.addMediumScope(LoadoutNBT.loadedAssaultRifle(Optional.empty()))));
                 put("cgm:pistol", LoadoutNBT.loadedPistol(Optional.empty()));
             }
         };
@@ -98,7 +99,9 @@ public final class Loadout {
                 "cgm:medium_scope",
                 "cgm:long_scope",
                 "cgm:silencer",
-                "cgm:light_grip"
+                "cgm:light_grip",
+                "cgm:tactical_stock",
+                "cgm:weighted_stock"
         };
         for (String itemId : baseAttachments) {
             giveOutsideHotbar(player, itemId, 1, false);
@@ -108,6 +111,10 @@ public final class Loadout {
     private static void giveTouchUps(ServerPlayer player) {
         var inventory = player.getInventory();
 
+        var random = player.getRandom();
+        Item randomThrowable = ForgeRegistries.ITEMS
+                .getValue(ResourceLocation.parse(random.nextInt(3) == 0 ? "cgm:stun_grenade" : "cgm:grenade"));
+        inventory.add(5, new ItemStack(randomThrowable, 8));
         inventory.add(6, new ItemStack(Items.DIAMOND_PICKAXE));
         inventory.add(7, new ItemStack(Items.TNT, 128));
         inventory.add(8, new ItemStack(Items.FLINT_AND_STEEL));

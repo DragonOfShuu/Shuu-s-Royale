@@ -83,6 +83,19 @@ public class LoadoutNBT {
         return tag;
     }
 
+    public static CompoundTag addTacticalStock(CompoundTag tag) {
+        return addTacticalStock(Optional.of(tag));
+    }
+
+    public static CompoundTag addTacticalStock(Optional<CompoundTag> originalTag) {
+        CompoundTag tag = originalTag.orElse(new CompoundTag());
+        CompoundTag attachments = tag.getCompound("Attachments");
+        CompoundTag tacticalStock = NBTifyItem("cgm:tactical_stock");
+        attachments.put("Stock", tacticalStock);
+        tag.put("Attachments", attachments);
+        return tag;
+    }
+
     public static CompoundTag NBTifyItem(String name) {
         ItemStack stack = new ItemStack(ForgeRegistries.ITEMS.getValue(ResourceLocation.tryParse(name)), 1);
         return stack.serializeNBT();

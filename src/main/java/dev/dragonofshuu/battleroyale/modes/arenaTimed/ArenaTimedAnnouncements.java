@@ -16,11 +16,14 @@ final class ArenaTimedAnnouncements {
     private ArenaTimedAnnouncements() {
     }
 
-    static void announceWinnersAndLosers(MinecraftServer server, Set<UUID> winners) {
+    static void announceWinnersLosersAndDraws(MinecraftServer server, Set<UUID> winners, Set<UUID> draws) {
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            boolean isDraw = draws.contains(player.getUUID());
             boolean isWinner = winners.contains(player.getUUID());
-            Component title = Component.literal(isWinner ? "WINNER" : "LOST")
-                    .withStyle(isWinner ? ChatFormatting.GOLD : ChatFormatting.RED, ChatFormatting.BOLD);
+            String label = isDraw ? "DRAW" : (isWinner ? "WINNER" : "LOST");
+            ChatFormatting color = isDraw ? ChatFormatting.YELLOW : (isWinner ? ChatFormatting.GOLD : ChatFormatting.RED);
+            Component title = Component.literal(label)
+                    .withStyle(color, ChatFormatting.BOLD);
             Component subtitle = Component.empty();
 
             player.connection.send(new ClientboundSetTitlesAnimationPacket(10, 40, 20));

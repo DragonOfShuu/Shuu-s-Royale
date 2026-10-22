@@ -25,8 +25,6 @@ public final class BrCommands {
                                 .executes(BrCommands::startGame))
                         .then(Commands.literal("stop")
                                 .executes(BrCommands::stopGame))
-                        .then(Commands.literal("backup")
-                                .executes(BrCommands::backupArena))
                         .then(Commands.literal("settings")
                                 .then(Commands.literal("warTime")
                                         .then(Commands.argument("value", IntegerArgumentType.integer(1))
@@ -57,9 +55,7 @@ public final class BrCommands {
                                                                         .argument("lives",
                                                                                 IntegerArgumentType.integer(0))
                                                                         .executes(
-                                                                                BrCommands::initArenaWithSettings)))))))
-                        .then(Commands.literal("reset")
-                                .executes(BrCommands::resetArena)));
+                                                                                BrCommands::initArenaWithSettings))))))));
     }
 
     private static boolean requireOverworld(CommandSourceStack source) {
@@ -250,22 +246,4 @@ public final class BrCommands {
         return 1;
     }
 
-    private static int resetArena(CommandContext<CommandSourceStack> ctx) {
-        CommandSourceStack source = ctx.getSource();
-
-        if (ArenaSnapshot.isBusy()) {
-            source.sendFailure(Component.literal("A backup or restore is already in progress."));
-            return 0;
-        }
-        if (!ArenaSnapshot.hasBackup()) {
-            source.sendFailure(Component.literal("No arena backup exists. Use /br backup first."));
-            return 0;
-        }
-
-        if (BattleRoyaleGame.isActive()) {
-            BattleRoyaleGame.stop(source.getServer());
-        }
-        ArenaSnapshot.beginRestore(source.getServer());
-        return 1;
-    }
 }

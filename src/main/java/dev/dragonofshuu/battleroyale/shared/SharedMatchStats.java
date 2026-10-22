@@ -2,6 +2,7 @@ package dev.dragonofshuu.battleroyale.shared;
 
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Team;
 
 import java.util.ArrayList;
@@ -138,11 +139,17 @@ public final class SharedMatchStats {
         List<PlayerMatchStats> rows = new ArrayList<>();
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             UUID id = player.getUUID();
-            Team team = player.getTeam();
+            PlayerTeam team = (PlayerTeam) player.getTeam();
+            Integer teamColor = null;
+            if (team != null && team.getColor() != null && team.getColor().getColor() != null) {
+                teamColor = team.getColor().getColor();
+            }
             rows.add(new PlayerMatchStats(
                     id,
                     player.getGameProfile().getName(),
-                    team == null ? "" : team.getName(),
+                    team,
+                    team == null ? "" : team.getDisplayName().getString(),
+                    teamColor,
                     KILLS.getOrDefault(id, 0),
                     DEATHS.getOrDefault(id, 0),
                     LIVES.getOrDefault(id, 0)));
@@ -152,6 +159,7 @@ public final class SharedMatchStats {
                 .comparing(PlayerMatchStats::teamName)
                 .thenComparing(Comparator.comparingInt(PlayerMatchStats::kills).reversed())
                 .thenComparing(Comparator.comparingInt(PlayerMatchStats::deaths))
+                .thenComparing(Comparator.comparingInt(PlayerMatchStats::livesLeft).reversed())
                 .thenComparing(PlayerMatchStats::playerName, String.CASE_INSENSITIVE_ORDER));
 
         return new MatchStatsSnapshot(phase, modeId, timerSeconds, showFinalResults, localPlayerId, List.copyOf(rows));

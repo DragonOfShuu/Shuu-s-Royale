@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.Comparator;
 
 public final class ArenaTimedGame {
 
@@ -30,6 +31,12 @@ public final class ArenaTimedGame {
         RESULTS_DELAY,
         RESULTS_SHOWN,
         ENDING
+    }
+
+    private record TimedOutcome(Set<UUID> winners, Set<UUID> draws) {
+    }
+
+    private record CompetitorScore(int kills, int deaths, int lives, Set<UUID> members) {
     }
 
     private static Phase phase = Phase.IDLE;
@@ -63,6 +70,7 @@ public final class ArenaTimedGame {
         phaseTicks = 0;
         phase = Phase.RUNNING;
         ArenaSafety.setAllPlayersSurvival(server);
+        ArenaTimedGameSettings.initiate(server);
 
         ArenaTimedPlayers.prepareParticipants(server, level, centerX, centerZ, borderSize, PLAYER_LOADOUTS);
 
@@ -74,6 +82,7 @@ public final class ArenaTimedGame {
     }
 
     public static void stop(MinecraftServer server) {
+        ArenaTimedGameSettings.end(server);
         ArenaSafety.clearGroundItems(server);
         ArenaSafety.clearPlayerInventories(server);
         ArenaSafety.setAllPlayersAdventure(server);
@@ -149,8 +158,8 @@ public final class ArenaTimedGame {
     }
 
     private static void finishByTimer(MinecraftServer server) {
-        Set<UUID> winners = determineWinners(server);
-        ArenaTimedAnnouncements.announceWinnersAndLosers(server, winners);
+        TimedOutcome outcome = determineOutcome(server);
+        ArenaTimedAnnouncements.announceWinnersLosersAndDraws(server, outcome.winners(), outcome.draws());
 
         phase = Phase.RESULTS_DELAY;
         phaseTicks = 0;
@@ -160,39 +169,60 @@ public final class ArenaTimedGame {
         SharedMatchStats.setShowFinalResults(server, false);
     }
 
-    private static Set<UUID> determineWinners(MinecraftServer server) {
+    private static TimedOutcome determineOutcome(MinecraftServer server) {
         List<PlayerMatchStats> rows = SharedMatchStats.getServerRows(server);
-        Map<String, Integer> teamKills = new HashMap<>();
-        int topSoloKills = Integer.MIN_VALUE;
-        String topTeam = null;
+        Map<String, CompetitorScore> competitors = new HashMap<>();
 
         for (PlayerMatchStats row : rows) {
             if (row.teamName().isBlank()) {
-                topSoloKills = Math.max(topSoloKills, row.kills());
-            } else {
-                int total = teamKills.getOrDefault(row.teamName(), 0) + row.kills();
-                teamKills.put(row.teamName(), total);
-                if (topTeam == null || total > teamKills.getOrDefault(topTeam, Integer.MIN_VALUE)) {
-                    topTeam = row.teamName();
-                }
+                Set<UUID> members = new HashSet<>();
+                members.add(row.playerId());
+                competitors.put("solo:" + row.playerId(),
+                    new CompetitorScore(row.kills(), row.deaths(), row.livesLeft(), members));
+                continue;
+            }
+
+            String key = "team:" + row.teamName();
+            CompetitorScore prior = competitors.get(key);
+            Set<UUID> members = prior == null ? new HashSet<>() : new HashSet<>(prior.members());
+            members.add(row.playerId());
+
+            int kills = row.kills() + (prior == null ? 0 : prior.kills());
+            int deaths = row.deaths() + (prior == null ? 0 : prior.deaths());
+            int lives = row.livesLeft() + (prior == null ? 0 : prior.lives());
+            competitors.put(key, new CompetitorScore(kills, deaths, lives, members));
+        }
+
+        if (competitors.isEmpty()) {
+            return new TimedOutcome(Set.of(), Set.of());
+        }
+
+        Comparator<CompetitorScore> rankOrder = Comparator
+                .comparingInt(CompetitorScore::kills).reversed()
+                .thenComparingInt(CompetitorScore::deaths)
+                .thenComparing(Comparator.comparingInt(CompetitorScore::lives).reversed());
+
+        CompetitorScore best = competitors.values().stream()
+                .max(rankOrder)
+                .orElse(null);
+        if (best == null) {
+            return new TimedOutcome(Set.of(), Set.of());
+        }
+
+        Set<UUID> topMembers = new HashSet<>();
+        int topCount = 0;
+        for (CompetitorScore score : competitors.values()) {
+            if (rankOrder.compare(score, best) == 0) {
+                topCount++;
+                topMembers.addAll(score.members());
             }
         }
 
-        int topTeamKills = topTeam == null ? Integer.MIN_VALUE : teamKills.getOrDefault(topTeam, Integer.MIN_VALUE);
-        int bestScore = Math.max(topSoloKills, topTeamKills);
-
-        Set<UUID> winners = new HashSet<>();
-        for (PlayerMatchStats row : rows) {
-            if (row.teamName().isBlank()) {
-                if (row.kills() == bestScore) {
-                    winners.add(row.playerId());
-                }
-            } else if (teamKills.getOrDefault(row.teamName(), Integer.MIN_VALUE) == bestScore) {
-                winners.add(row.playerId());
-            }
+        if (topCount > 1) {
+            return new TimedOutcome(Set.of(), topMembers);
         }
 
-        return winners;
+        return new TimedOutcome(topMembers, Set.of());
     }
 
     private static List<ServerPlayer> eligiblePlayers(MinecraftServer server) {

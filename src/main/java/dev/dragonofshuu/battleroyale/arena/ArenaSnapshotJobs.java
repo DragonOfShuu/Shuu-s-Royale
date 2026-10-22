@@ -5,13 +5,6 @@ import net.minecraft.core.SectionPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.util.Mth;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.ExperienceOrb;
-import net.minecraft.world.entity.item.FallingBlockEntity;
-import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.entity.item.PrimedTnt;
-import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -19,13 +12,11 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.chunk.PalettedContainer;
-import net.minecraft.world.phys.AABB;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-import dev.dragonofshuu.battleroyale.modes.battleRoyale.BattleRoyaleGame;
+import dev.dragonofshuu.battleroyale.shared.ModBroadcasts;
 
 final class ArenaSnapshotJobs {
 
@@ -39,10 +30,11 @@ final class ArenaSnapshotJobs {
         ArenaSnapshot.size = arenaSize;
         ArenaSnapshot.arenaConfigured = true;
 
-        int minChunkX = ArenaSnapshot.minChunkCoord(cx, arenaSize);
-        int maxChunkX = ArenaSnapshot.maxChunkCoord(cx, arenaSize);
-        int minChunkZ = ArenaSnapshot.minChunkCoord(cz, arenaSize);
-        int maxChunkZ = ArenaSnapshot.maxChunkCoord(cz, arenaSize);
+        int paddedArenaSize = arenaSize + 16; // Add padding to ensure full coverage of the arena
+        int minChunkX = ArenaSnapshot.minChunkCoord(cx, paddedArenaSize);
+        int maxChunkX = ArenaSnapshot.maxChunkCoord(cx, paddedArenaSize);
+        int minChunkZ = ArenaSnapshot.minChunkCoord(cz, paddedArenaSize);
+        int maxChunkZ = ArenaSnapshot.maxChunkCoord(cz, paddedArenaSize);
 
         for (int x = minChunkX; x <= maxChunkX; x++) {
             for (int z = minChunkZ; z <= maxChunkZ; z++) {
@@ -51,7 +43,7 @@ final class ArenaSnapshotJobs {
         }
 
         ArenaSnapshot.startJob(ArenaSnapshot.State.CAPTURING);
-        BattleRoyaleGame.broadcast(server, "Backing up arena (" + ArenaSnapshot.totalChunks + " chunks)...");
+        ModBroadcasts.broadcastToOps(server, "Backing up arena (" + ArenaSnapshot.totalChunks + " chunks)...");
     }
 
     static void beginRestore(MinecraftServer server) {
@@ -61,7 +53,7 @@ final class ArenaSnapshotJobs {
         }
 
         ArenaSnapshot.startJob(ArenaSnapshot.State.RESTORING);
-        BattleRoyaleGame.broadcast(server, "Restoring arena (" + ArenaSnapshot.totalChunks + " chunks)...");
+        ModBroadcasts.broadcastToOps(server, "Restoring arena (" + ArenaSnapshot.totalChunks + " chunks)...");
     }
 
     static void tick(MinecraftServer server) {
@@ -167,7 +159,7 @@ final class ArenaSnapshotJobs {
         ArenaSafety.setAllPlayersAdventure(server);
 
         ArenaSnapshot.state = ArenaSnapshot.State.READY;
-        BattleRoyaleGame.broadcast(server, "Arena restored.");
+        ModBroadcasts.broadcastToOps(server, "Arena restored.");
     }
 
     private static void reportProgress(MinecraftServer server) {
@@ -179,7 +171,7 @@ final class ArenaSnapshotJobs {
         if (step > ArenaSnapshot.lastReportedStep && step < 10) {
             ArenaSnapshot.lastReportedStep = step;
             String verb = ArenaSnapshot.state == ArenaSnapshot.State.CAPTURING ? "Backup" : "Restore";
-            BattleRoyaleGame.broadcast(server, verb + " progress: " + (step * 10) + "%");
+            ModBroadcasts.broadcastToOps(server, verb + " progress: " + (step * 10) + "%");
         }
     }
 }

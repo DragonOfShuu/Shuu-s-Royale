@@ -61,7 +61,11 @@ public final class SharedUiNetworking {
             for (PlayerMatchStats player : players) {
                 buf.writeUUID(player.playerId());
                 buf.writeUtf(player.playerName());
-                buf.writeUtf(player.teamName());
+                buf.writeUtf(player.teamDisplayName().getString());
+                buf.writeBoolean(player.teamColor() != null);
+                if (player.teamColor() != null) {
+                    buf.writeVarInt(player.teamColor());
+                }
                 buf.writeVarInt(player.kills());
                 buf.writeVarInt(player.deaths());
                 buf.writeVarInt(player.livesLeft());
@@ -82,10 +86,16 @@ public final class SharedUiNetworking {
             int size = buf.readVarInt();
             List<PlayerMatchStats> players = new ArrayList<>(size);
             for (int i = 0; i < size; i++) {
+                UUID playerId = buf.readUUID();
+                String playerName = buf.readUtf();
+                String teamName = buf.readUtf();
+                Integer teamColor = buf.readBoolean() ? buf.readVarInt() : null;
                 players.add(new PlayerMatchStats(
-                        buf.readUUID(),
-                        buf.readUtf(),
-                        buf.readUtf(),
+                        playerId,
+                        playerName,
+                        null,
+                        teamName,
+                        teamColor,
                         buf.readVarInt(),
                         buf.readVarInt(),
                         buf.readVarInt()));

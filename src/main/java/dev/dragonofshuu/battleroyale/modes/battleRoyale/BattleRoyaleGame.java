@@ -3,8 +3,8 @@ package dev.dragonofshuu.battleroyale.modes.battleRoyale;
 import dev.dragonofshuu.battleroyale.arena.ArenaSafety;
 import dev.dragonofshuu.battleroyale.arena.ArenaSnapshot;
 import dev.dragonofshuu.battleroyale.shared.Loadout;
-import dev.dragonofshuu.battleroyale.shared.Loadout.LoadoutClass;
 import dev.dragonofshuu.battleroyale.shared.MatchPhase;
+import dev.dragonofshuu.battleroyale.shared.ModBroadcasts;
 import dev.dragonofshuu.battleroyale.shared.SharedMatchStats;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -80,6 +80,7 @@ public final class BattleRoyaleGame {
         postWinResetTicks = 0;
         noWinningConditionAtStart = false;
         ArenaSafety.setAllPlayersSurvival(server);
+        BattleRoyaleGameSettings.initiate(server);
 
         // Drop participants into the arena and hand out starting gear
         BattleRoyalePlayers.prepareParticipants(server, level, centerX, centerZ, borderSize, lives,
@@ -106,6 +107,7 @@ public final class BattleRoyaleGame {
     }
 
     public static void stop(MinecraftServer server) {
+        BattleRoyaleGameSettings.end(server);
         BattleRoyalePlayers.restoreEliminatedPlayers(server, ELIMINATED_TAG);
         ArenaSafety.clearGroundItems(server);
         ArenaSafety.clearPlayerInventories(server);
@@ -237,7 +239,8 @@ public final class BattleRoyaleGame {
         phase = Phase.SHRINKING;
         timer = shrinkTicks;
 
-        broadcast(server, "The border is shrinking to " + (int) targetSize + " blocks!");
+        // broadcast(server, "The border is shrinking to " + (int) targetSize + "
+        // blocks!");
     }
 
     private static void endShrink(MinecraftServer server) {
@@ -249,8 +252,8 @@ public final class BattleRoyaleGame {
 
         phase = Phase.WAR;
         timer = warTicks;
-        broadcast(server, "The border has stopped. Next shrink in "
-                + (warTicks / TICKS_PER_SECOND) + " seconds.");
+        // broadcast(server, "The border has stopped. Next shrink in "
+        // + (warTicks / TICKS_PER_SECOND) + " seconds.");
     }
 
     private static void announceNiceDeathAndReset(MinecraftServer server) {
@@ -304,9 +307,6 @@ public final class BattleRoyaleGame {
     }
 
     public static void broadcast(MinecraftServer server, String message) {
-        server.getPlayerList().broadcastSystemMessage(
-                Component.literal("[BR] ").withStyle(ChatFormatting.GOLD)
-                        .append(Component.literal(message).withStyle(ChatFormatting.WHITE)),
-                false);
+        ModBroadcasts.broadcast(server, message, "BR", ChatFormatting.GOLD);
     }
 }

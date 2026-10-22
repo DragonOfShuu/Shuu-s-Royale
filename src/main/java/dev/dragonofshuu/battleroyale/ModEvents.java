@@ -3,6 +3,7 @@ package dev.dragonofshuu.battleroyale;
 import dev.dragonofshuu.battleroyale.arena.ArenaSnapshot;
 import dev.dragonofshuu.battleroyale.commands.AtCommands;
 import dev.dragonofshuu.battleroyale.commands.BrCommands;
+import dev.dragonofshuu.battleroyale.commands.ShuufpsCommands;
 import dev.dragonofshuu.battleroyale.modes.arenaTimed.ArenaTimedGame;
 import dev.dragonofshuu.battleroyale.modes.battleRoyale.BattleRoyaleGame;
 import dev.dragonofshuu.battleroyale.shared.PlayerDrop;
@@ -33,6 +34,7 @@ public final class ModEvents {
     public static void onRegisterCommands(RegisterCommandsEvent event) {
         BrCommands.register(event);
         AtCommands.register(event);
+        ShuufpsCommands.register(event);
     }
 
     @SubscribeEvent

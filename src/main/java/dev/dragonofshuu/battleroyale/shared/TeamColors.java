@@ -1,5 +1,7 @@
 package dev.dragonofshuu.battleroyale.shared;
 
+import net.minecraft.ChatFormatting;
+import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Team;
 
 import java.util.Locale;
@@ -15,6 +17,13 @@ public final class TeamColors {
     public static Integer getTeamColor(Team team) {
         if (team == null) {
             return null;
+        }
+
+        if (team instanceof PlayerTeam playerTeam) {
+            ChatFormatting color = playerTeam.getColor();
+            if (color != null && color.getColor() != null) {
+                return color.getColor();
+            }
         }
 
         return getTeamColor(team.getName());

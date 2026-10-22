@@ -25,8 +25,6 @@ public final class AtCommands {
                                         .executes(AtCommands::startGame)))
                         .then(Commands.literal("stop")
                                 .executes(AtCommands::stopGame))
-                        .then(Commands.literal("backup")
-                                .executes(AtCommands::backupArena))
                         .then(Commands.literal("set")
                                 .then(Commands.literal("center")
                                         .then(Commands
@@ -34,9 +32,7 @@ public final class AtCommands {
                                                 .executes(AtCommands::setCenter))))
                         .then(Commands.literal("init")
                                 .then(Commands.argument("size", IntegerArgumentType.integer(11, MAX_BACKUP_SIZE))
-                                        .executes(AtCommands::initArena)))
-                        .then(Commands.literal("reset")
-                                .executes(AtCommands::resetArena)));
+                                        .executes(AtCommands::initArena))));
     }
 
     private static boolean requireOverworld(CommandSourceStack source) {
@@ -159,22 +155,4 @@ public final class AtCommands {
         return 1;
     }
 
-    private static int resetArena(CommandContext<CommandSourceStack> ctx) {
-        CommandSourceStack source = ctx.getSource();
-
-        if (ArenaSnapshot.isBusy()) {
-            source.sendFailure(Component.literal("A backup or restore is already in progress."));
-            return 0;
-        }
-        if (!ArenaSnapshot.hasBackup()) {
-            source.sendFailure(Component.literal("No arena backup exists. Use /at backup first."));
-            return 0;
-        }
-
-        if (ArenaTimedGame.isActive()) {
-            ArenaTimedGame.stop(source.getServer());
-        }
-        ArenaSnapshot.beginRestore(source.getServer());
-        return 1;
-    }
 }
