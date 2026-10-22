@@ -21,7 +21,8 @@ final class ArenaTimedAnnouncements {
             boolean isDraw = draws.contains(player.getUUID());
             boolean isWinner = winners.contains(player.getUUID());
             String label = isDraw ? "DRAW" : (isWinner ? "WINNER" : "LOST");
-            ChatFormatting color = isDraw ? ChatFormatting.YELLOW : (isWinner ? ChatFormatting.GOLD : ChatFormatting.RED);
+            ChatFormatting color = isDraw ? ChatFormatting.YELLOW
+                    : (isWinner ? ChatFormatting.GOLD : ChatFormatting.RED);
             Component title = Component.literal(label)
                     .withStyle(color, ChatFormatting.BOLD);
             Component subtitle = Component.empty();

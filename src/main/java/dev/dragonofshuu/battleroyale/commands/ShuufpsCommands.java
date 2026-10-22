@@ -41,7 +41,8 @@ public final class ShuufpsCommands {
             return 0;
         }
         if (!ArenaSnapshot.hasArenaConfig()) {
-            source.sendFailure(Component.literal("Arena center/size not set. Use /br set center <size> or /br init <size>."));
+            source.sendFailure(
+                    Component.literal("Arena center/size not set. Use /br set center <size> or /br init <size>."));
             return 0;
         }
         if (BattleRoyaleGame.isRunning() || ArenaTimedGame.isRunning()) {

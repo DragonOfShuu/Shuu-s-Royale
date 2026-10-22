@@ -139,7 +139,8 @@ final class MatchLeaderboardPanelRenderer {
             if (group.isTeam()) {
                 Integer rgb = group.teamColor() != null
                         ? group.teamColor()
-                        : (group.team() == null ? TeamColors.getTeamColor(group.name()) : TeamColors.getTeamColor(group.team()));
+                        : (group.team() == null ? TeamColors.getTeamColor(group.name())
+                                : TeamColors.getTeamColor(group.team()));
                 int color = rgb == null ? 0xFFE0E0E0 : TeamColors.toArgb(rgb, 255);
                 Integer bg = rgb == null ? TeamColors.toArgb(0x3A3A3A, 120) : TeamColors.toArgb(rgb, 120);
                 lines.add(new RenderLine(group.name() + " (" + group.totalKills() + " K)", color, 0, bg, null));
@@ -217,11 +218,11 @@ final class MatchLeaderboardPanelRenderer {
     record PanelBounds(int x, int y, int width, int height) {
     }
 
-        private record ColumnLayout(int nameX, int killsLeft, int killsRight, int kdRight, int deathsRight,
+    private record ColumnLayout(int nameX, int killsLeft, int killsRight, int kdRight, int deathsRight,
             int livesRight) {
     }
 
-        private record RenderColumns(String kills, String kd, String deaths, String lives) {
+    private record RenderColumns(String kills, String kd, String deaths, String lives) {
     }
 
     private record RenderLine(String text, int color, int indent, Integer backgroundColor, RenderColumns columns) {

@@ -178,7 +178,7 @@ public final class ArenaTimedGame {
                 Set<UUID> members = new HashSet<>();
                 members.add(row.playerId());
                 competitors.put("solo:" + row.playerId(),
-                    new CompetitorScore(row.kills(), row.deaths(), row.livesLeft(), members));
+                        new CompetitorScore(row.kills(), row.deaths(), row.livesLeft(), members));
                 continue;
             }
 
