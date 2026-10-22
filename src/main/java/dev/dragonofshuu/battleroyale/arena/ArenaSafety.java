@@ -45,7 +45,8 @@ public final class ArenaSafety {
     }
 
     public static void clearGroundItems(MinecraftServer server) {
-        clearGroundItems(server.overworld(), ArenaSnapshot.getCenterX(), ArenaSnapshot.getCenterZ(), ArenaSnapshot.getSize());
+        clearGroundItems(server.overworld(), ArenaSnapshot.getCenterX(), ArenaSnapshot.getCenterZ(),
+                ArenaSnapshot.getSize());
     }
 
     public static void clearGroundItems(ServerLevel level, double centerX, double centerZ, int arenaSize) {
